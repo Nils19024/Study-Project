@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "/home/nils/tapas310/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/TAPAS",
+    "${workspaceFolder}/rlbench"
+  ]
+}
