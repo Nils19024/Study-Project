@@ -81,12 +81,12 @@ class BimanualDualPushButtons(BimanualTask):
             tp.set_color([1.0, 0.0, 0.0])
         for w in self.target_wraps:
             w.set_color([1.0, 0.0, 0.0])
-            
+
         #button_colors = color_permutations[index]
 
         rng = np.random.default_rng(index)
         button_colors = rng.choice(np.asarray(colors, dtype=object), 3, replace=False)
-        
+
         self.color_names = []
         self.color_rgbs = []
         self.chosen_colors = []

@@ -55,7 +55,7 @@ class HandoverItemMedium(BimanualTask):
         b.clear()
         for item in self.items:
             b.sample(item, min_distance=0.1)
-            
+
 
         w0 = Dummy('waypoint2')
         w0.set_position([0.0, 0.0, -0.025], relative_to=self.items[index], reset_dynamics=False)
@@ -72,7 +72,7 @@ class HandoverItemMedium(BimanualTask):
         left_success_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
 
         self.register_success_conditions(
-            [DetectedCondition(self.items[index], right_success_sensor),  
+            [DetectedCondition(self.items[index], right_success_sensor),
              DetectedCondition(self.items[index], left_success_sensor, negated=True),
              LiftedCondition(self.items[index], 0.8)])
 
@@ -81,10 +81,10 @@ class HandoverItemMedium(BimanualTask):
 
     def variation_count(self) -> int:
         return len(colors)
-    
+
     def boundary_root(self) -> Object:
         return Shape('handover_item_boundary')
-    
+
     def is_static_workspace(self):
         return True
 

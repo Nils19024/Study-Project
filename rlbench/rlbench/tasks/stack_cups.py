@@ -67,3 +67,8 @@ class StackCups(Task):
 
     def variation_count(self) -> int:
         return len(colors)
+
+    def get_low_dim_state(self) -> np.ndarray:
+        shapes = [self.cup1, self.cup2, self.cup3]
+        states = [s.get_pose() for s in shapes]
+        return np.concatenate(states)

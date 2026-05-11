@@ -40,6 +40,6 @@ class BimanualSweepToDustpan(BimanualTask):
 
     def variation_count(self) -> int:
         return 1
-    
+
     def is_static_workspace(self):
         return True

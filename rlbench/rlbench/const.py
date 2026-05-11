@@ -10,12 +10,11 @@ from pyrep.robots.end_effectors.panda_gripper import PandaGripper
 from pyrep.robots.end_effectors.robotiq85_gripper import Robotiq85Gripper
 
 try:
-    from pyrep.robots.arms.dual_panda import PandaLeft, PandaRight
-    from pyrep.robots.end_effectors.dual_panda_gripper import (
-        PandaGripperLeft, PandaGripperRight)
-except ModuleNotFoundError:
-    PandaLeft = PandaRight = None
-    PandaGripperLeft = PandaGripperRight = None
+    from pyrep.robots.arms.dual_panda import PandaRight
+    from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperRight
+except ImportError:
+    PandaRight = None
+    PandaGripperRight = None
 
 
 
@@ -50,7 +49,5 @@ SUPPORTED_ROBOTS = {
     'mico': (Mico, MicoGripper, 6),
     'sawyer': (Sawyer, BaxterGripper, 7),
     'ur5': (UR5, Robotiq85Gripper, 6),
+    'dual_panda': (PandaRight, PandaGripperRight, 14),
 }
-
-if PandaRight is not None and PandaGripperRight is not None:
-    SUPPORTED_ROBOTS['dual_panda'] = (PandaRight, PandaGripperRight, 14)

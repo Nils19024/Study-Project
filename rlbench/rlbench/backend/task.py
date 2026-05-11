@@ -16,8 +16,9 @@ from pyrep.objects.object import Object
 try:
     from pyrep.robots.arms.dual_panda import PandaRight
     from pyrep.robots.arms.dual_panda import PandaLeft
-except ModuleNotFoundError:
-    PandaRight = PandaLeft = ()
+except ImportError:
+    PandaRight = None
+    PandaLeft = None
 
 from rlbench.backend.conditions import Condition
 from rlbench.backend.exceptions import WaypointError
@@ -328,7 +329,7 @@ class Task(object):
     def cleanup_(self) -> None:
         for cond in self._success_conditions + self._fail_conditions:
             cond.reset()
-                
+
         self._waypoints = None
         self.cleanup()
 
@@ -352,7 +353,7 @@ class Task(object):
     def restore_state(self, state: Tuple[bytes, int]) -> None:
         objs = self.get_base().get_objects_in_tree(exclude_base=False)
         if len(objs) != state[1]:
-            if self.name not in ['empty_container']:               
+            if self.name not in ['empty_container']:
                 logging.error('Expected to be resetting %d objects, but there were %d.', state[1], len(objs))
                 raise RuntimeError("Insufficient number of objects in the scene. Maybe an object is still grasped. Please check the task!")
         self.pyrep.set_configuration_tree(state[0])
@@ -366,8 +367,12 @@ class Task(object):
             logging.warn("single robot")
             return self._feasible_with_arm(arm, waypoints)
         elif isinstance(self.robot, BimanualRobot):
-            way_points_right = [w for w in waypoints if isinstance(w._arm, PandaRight)]
-            way_points_left = [w for w in waypoints if isinstance(w._arm, PandaLeft)]
+            way_points_right = [
+                w for w in waypoints
+                if PandaRight is not None and isinstance(w._arm, PandaRight)]
+            way_points_left = [
+                w for w in waypoints
+                if PandaLeft is not None and isinstance(w._arm, PandaLeft)]
 
             logging.info("total waypoints %s, (right=%s, left=%s)", len(waypoints), len(way_points_right), len(way_points_left))
 
@@ -392,7 +397,7 @@ class Task(object):
                 pass
             if path is None:
                 arm.set_joint_positions(start_vals)
-                
+
                 return False, str(point)
             path.set_to_end()
         # Needed twice otherwise can glitch out.
@@ -410,8 +415,8 @@ class Task(object):
                 # There are no more waypoints...
                 break
             ob_type = Object.get_object_type(name)
-            way = None
-            if ob_type == ObjectType.DUMMY:                
+            new_waypoints = []
+            if ob_type == ObjectType.DUMMY:
                 waypoint = Dummy(name)
                 start_func = None
                 end_func = None
@@ -421,9 +426,10 @@ class Task(object):
                     end_func = self._waypoint_abilities_end[i]
                 if isinstance(self.robot, UnimanualRobot):
                     arm = self.robot.arm
-                    way = Point(waypoint, arm,
-                            start_of_path_func=start_func,
-                            end_of_path_func=end_func)
+                    new_waypoints.append(Point(
+                        waypoint, arm,
+                        start_of_path_func=start_func,
+                        end_of_path_func=end_func))
                 elif isinstance(self.robot, BimanualRobot):
                     waypoint_mapping = self.waypoint_mapping[name]
                     logging.debug("mapping waypoint %s to %s", name, waypoint_mapping)
@@ -431,21 +437,27 @@ class Task(object):
                     if not arms:
                         logging.warning("unable to get arm for waypoint %s", name)
                     for arm in arms:
-                        way = Point(waypoint, arm,
-                                    start_of_path_func=start_func,
-                                    end_of_path_func=end_func)
+                        new_waypoints.append(Point(
+                            waypoint, arm,
+                            start_of_path_func=start_func,
+                            end_of_path_func=end_func))
             elif ob_type == ObjectType.PATH:
                 cartestian_path = CartesianPath(name)
-                way = PredefinedPath(cartestian_path, arm)
+                if isinstance(self.robot, BimanualRobot):
+                    arms = self.robot.get_arms_by_name(self.waypoint_mapping[name])
+                else:
+                    arms = [self.robot.arm]
+                new_waypoints.extend(PredefinedPath(cartestian_path, arm) for arm in arms)
             else:
                 raise WaypointError(
                     '%s is an unsupported waypoint type %s' % (
                         name, ob_type), self)
 
-            if name in self._waypoint_additional_inits and not validating:
-                additional_waypoint_inits.append(
-                    (self._waypoint_additional_inits[name], way))
-            waypoints.append(way)
+            for way in new_waypoints:
+                if name in self._waypoint_additional_inits and not validating:
+                    additional_waypoint_inits.append(
+                        (self._waypoint_additional_inits[name], way))
+                waypoints.append(way)
             i += 1
 
         # Check if all of the waypoints are feasible
@@ -470,10 +482,20 @@ class BimanualTask(Task):
     def right_waypoints(self):
         waypoints = self.get_waypoints()
         wm = self.waypoint_mapping
-        return [w for w in waypoints if wm[w.name] == 'right']
+        return [
+            w for w in waypoints
+            if wm[w.name] == 'right' or (
+                wm[w.name] == 'both' and PandaRight is not None
+                and isinstance(w._arm, PandaRight))
+        ]
 
     @property
     def left_waypoints(self):
         waypoints = self.get_waypoints()
         wm = self.waypoint_mapping
-        return [w for w in waypoints if wm[w.name] == 'left']
+        return [
+            w for w in waypoints
+            if wm[w.name] == 'left' or (
+                wm[w.name] == 'both' and PandaLeft is not None
+                and isinstance(w._arm, PandaLeft))
+        ]

@@ -48,16 +48,19 @@ class RLBenchEnv(gym.Env):
             self.observation_space = spaces.Box(
                 low=-np.inf, high=np.inf, shape=obs.get_low_dim_data().shape)
         elif observation_mode == 'vision':
-            observation_space = {
+            self.observation_space = spaces.Dict({
                 "state": spaces.Box(
                     low=-np.inf, high=np.inf,
                     shape=obs.get_low_dim_data().shape),
-                    
-                }            
-            for camera_name, config in obs_config.camera_config:
-                observation_space[camera_name] = spaces.Box( low=0, high=1, shape=config.shape)
-
-            self.observation_space = spaces.Dict(observation_space)
+                "left_shoulder_rgb": spaces.Box(
+                    low=0, high=1, shape=obs.left_shoulder_rgb.shape),
+                "right_shoulder_rgb": spaces.Box(
+                    low=0, high=1, shape=obs.right_shoulder_rgb.shape),
+                "wrist_rgb": spaces.Box(
+                    low=0, high=1, shape=obs.wrist_rgb.shape),
+                "front_rgb": spaces.Box(
+                    low=0, high=1, shape=obs.front_rgb.shape),
+                })
 
         if render_mode is not None:
             # Add the camera to the scene
@@ -73,20 +76,13 @@ class RLBenchEnv(gym.Env):
         if self._observation_mode == 'state':
             return obs.get_low_dim_data()
         elif self._observation_mode == 'vision':
-            obs = {"state": obs.get_low_dim_data()}
-
-            ..todo:: {
+            return {
                 "state": obs.get_low_dim_data(),
                 "left_shoulder_rgb": obs.left_shoulder_rgb,
                 "right_shoulder_rgb": obs.right_shoulder_rgb,
                 "wrist_rgb": obs.wrist_rgb,
                 "front_rgb": obs.front_rgb,
             }
-
-            for camera_name, _ in  self.env._obs_config.camera_config:
-                obs.update(obs.camera_data.get(camera_name))
-            return obs
-
 
     def render(self, mode='human') -> Union[None, np.ndarray]:
         if mode != self._render_mode:

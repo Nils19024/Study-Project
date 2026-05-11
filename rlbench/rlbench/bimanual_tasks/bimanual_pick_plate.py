@@ -24,7 +24,7 @@ class BimanualPickPlate(BimanualTask):
 
     def init_task(self) -> None:
         self.plate = Shape('plate')
-      
+
         self.register_success_conditions([ LiftedCondition(self.plate, 1.0)])
         self.register_graspable_objects([self.plate])
         self.waypoint_mapping = defaultdict(lambda: 'right')

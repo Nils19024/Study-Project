@@ -8,15 +8,6 @@ from pyrep.objects import VisionSensor
 from pyrep.robots.arms.panda import Panda
 from pyrep.robots.end_effectors.panda_gripper import PandaGripper
 
-try:
-    from pyrep.robots.arms.dual_panda import PandaLeft
-    from pyrep.robots.arms.dual_panda import PandaRight
-    from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperRight
-    from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperLeft
-except ModuleNotFoundError:
-    PandaLeft = PandaRight = None
-    PandaGripperRight = PandaGripperLeft = None
-
 from rlbench import utils
 from rlbench.action_modes.action_mode import ActionMode
 from rlbench.backend.const import *
@@ -109,15 +100,9 @@ class Environment(object):
             raise RuntimeError('Already called launch!')
         self._pyrep = PyRep()
         if self._robot_setup == 'dual_panda':
-            self._pyrep.launch(
-                join(DIR_PATH, BIMANUAL_TTT_FILE),
-                headless=self._headless,
-                responsive_ui=not self._headless)
+            self._pyrep.launch(join(DIR_PATH, BIMANUAL_TTT_FILE), headless=self._headless)
         else:
-            self._pyrep.launch(
-                join(DIR_PATH, TTT_FILE),
-                headless=self._headless,
-                responsive_ui=not self._headless)
+            self._pyrep.launch(join(DIR_PATH, TTT_FILE), headless=self._headless)
 
         arm_class, gripper_class, _ = SUPPORTED_ROBOTS[
             self._robot_setup]
@@ -126,7 +111,17 @@ class Environment(object):
         if self._robot_setup == 'dual_panda':
 
             logging.info("Using dual panda robot")
-           
+            try:
+                from pyrep.robots.arms.dual_panda import PandaLeft
+                from pyrep.robots.arms.dual_panda import PandaRight
+                from pyrep.robots.end_effectors.dual_panda_gripper import (
+                    PandaGripperLeft, PandaGripperRight)
+            except ImportError as exc:
+                raise RuntimeError(
+                    "robot_setup='dual_panda' requires a PyRep build with "
+                    "dual_panda arm and gripper classes."
+                ) from exc
+
             #panda_arm = Panda()
             #panda_pos = panda_arm.get_position()
             #panda_arm.remove()
@@ -136,8 +131,8 @@ class Environment(object):
             right_gripper = PandaGripperRight()
             left_gripper = PandaGripperLeft()
 
-            # ..not updating position as we assume that the scene already contains two pandas which are placed correctly     
-            #relative_left_position = left_arm.get_position(relative_to=right_arm)            
+            # ..not updating position as we assume that the scene already contains two pandas which are placed correctly
+            #relative_left_position = left_arm.get_position(relative_to=right_arm)
             #right_arm.set_position(panda_pos)
             #left_arm.set_position(relative_left_position, relative_to=right_arm)
 

@@ -10,6 +10,7 @@ from rlbench.backend.task import Task
 class OpenFridge(Task):
 
     def init_task(self):
+        self._fridge_root = Shape('fridge_root')
         self.register_success_conditions(
             [JointCondition(Joint('top_joint'), np.deg2rad(70))])
 
@@ -22,8 +23,11 @@ class OpenFridge(Task):
         return 1
 
     def boundary_root(self) -> Object:
-        return Shape('fridge_root')
+        return self._fridge_root
 
     def base_rotation_bounds(self) -> Tuple[Tuple[float, float, float],
                                             Tuple[float, float, float]]:
         return (0.0, 0.0, -np.pi / 4), (0.0, 0.0, np.pi / 4)
+
+    def get_low_dim_state(self):
+        return self._fridge_root.get_pose()

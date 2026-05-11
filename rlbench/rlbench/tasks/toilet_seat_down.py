@@ -8,6 +8,7 @@ from rlbench.backend.task import Task
 class ToiletSeatDown(Task):
 
     def init_task(self) -> None:
+        self._seat = ...
         self.register_success_conditions([
             JointCondition(Joint('toilet_seat_up_revolute_joint'), 1.7)])
 

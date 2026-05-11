@@ -11,7 +11,6 @@ from rlbench.noise_model import GaussianNoise
 from rlbench.observation_config import ObservationConfig, CameraConfig
 import numpy as np
 from rlbench.backend.robot import Robot
-from rlbench.backend.robot import UnimanualRobot
 from rlbench.tasks.reach_target import ReachTarget
 
 ASSET_DIR = path.join(path.dirname(path.abspath(__file__)), 'assets', 'tasks')
@@ -28,7 +27,7 @@ class TestScene(unittest.TestCase):
         self.pyrep = PyRep()
         self.pyrep.launch(join(environment.DIR_PATH, TTT_FILE), headless=True)
         self.pyrep.set_simulation_timestep(0.005)
-        self.robot = UnimanualRobot(Panda(), PandaGripper())
+        self.robot = Robot(Panda(), PandaGripper())
 
     def tearDown(self):
         self.pyrep.shutdown()

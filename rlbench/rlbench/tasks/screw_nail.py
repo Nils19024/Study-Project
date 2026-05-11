@@ -1,4 +1,5 @@
 from typing import List, Tuple
+import numpy as np
 from pyrep.objects.shape import Shape
 from pyrep.objects.joint import Joint
 from rlbench.backend.task import Task
@@ -9,13 +10,13 @@ from rlbench.backend.conditions import JointCondition, GraspedCondition, \
 class ScrewNail(Task):
 
     def init_task(self) -> None:
-        screw_driver = Shape('screw_driver')
+        self.screw_driver = Shape('screw_driver')
         self.block = Shape('block')
-        self.register_graspable_objects([screw_driver])
+        self.register_graspable_objects([self.screw_driver])
         screw_joint = Joint('screw_joint')
 
         cond_set = ConditionSet([
-            GraspedCondition(self.robot.gripper, screw_driver),
+            GraspedCondition(self.robot.gripper, self.screw_driver),
             JointCondition(screw_joint, 1.4)],  # about 90 degrees
             order_matters=True)
         self.register_success_conditions([cond_set])
@@ -34,3 +35,8 @@ class ScrewNail(Task):
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, -3.14 / 2.], [0, 0, 3.14 / 2.]
+
+    def get_low_dim_state(self) -> np.ndarray:
+        objects = [self.screw_driver, self.block]
+        states = [o.get_pose() for o in objects]
+        return np.concatenate(states)

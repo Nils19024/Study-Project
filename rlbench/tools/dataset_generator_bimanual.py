@@ -53,7 +53,7 @@ def save_demo(demo, example_path, variation):
                 data = obs.perception_data.get(camera_full_name, None)
 
                 if data is not None:
-                    if dtype == 'rgb':                
+                    if dtype == 'rgb':
                         data = Image.fromarray(data)
                     elif dtype == 'depth':
                         data = utils.float_array_to_rgb_image(data, scale_factor=DEPTH_SCALE)
@@ -62,10 +62,10 @@ def save_demo(demo, example_path, variation):
                     elif dtype == 'mask':
                         data = Image.fromarray((data * 255).astype(np.uint8))
                     else:
-                        raise Exception('Invalid data type')    
+                        raise Exception('Invalid data type')
                     logging.debug("saving %s", camera_full_name)
                     data.save(os.path.join(data_path, f"{dtype}_{i:04d}.png"))
-                    
+
         # ..why don't we put everything into a pickle file?
         obs.perception_data.clear()
 
@@ -83,7 +83,7 @@ def run_all_variations(task_name, headless, save_path, episodes_per_task, image_
 
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
-        
+
     from rich.logging import RichHandler
     logging.basicConfig(level=logging.INFO, handlers=[RichHandler()])
     logging.root.name = task_name
@@ -113,7 +113,7 @@ def run_all_variations(task_name, headless, save_path, episodes_per_task, image_
     tasks_with_problems = ""
 
     for task in tasks:
-        
+
         task_env = rlbench_env.get_task(task)
         possible_variations = task_env.variation_count()
 
@@ -159,7 +159,7 @@ def run_all_variations(task_name, headless, save_path, episodes_per_task, image_
                     break
 
                 episode_path = os.path.join(episodes_path, EPISODE_FOLDER % ex_idx)
-               
+
                 save_demo(demo, episode_path, variation)
 
                 with open(os.path.join( episode_path, VARIATION_DESCRIPTIONS), 'wb') as f:
@@ -169,7 +169,7 @@ def run_all_variations(task_name, headless, save_path, episodes_per_task, image_
             if abort_variation:
                 break
 
-    
+
     rlbench_env.shutdown()
 
     return tasks_with_problems

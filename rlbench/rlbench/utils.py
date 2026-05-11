@@ -1,7 +1,7 @@
 import importlib
 import pickle
 
-from itertools import product            
+from itertools import product
 import os
 from os import listdir
 from os.path import join, exists
@@ -79,7 +79,7 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
         raise RuntimeError(
             'You asked for %d examples, but only %d were available.' % (
                 amount, len(examples)))
-    
+
     if amount > len(examples[from_episode_number:]):
         raise RuntimeError('You specified from_episode_number=%d, but only %d examples were available', from_episode_number,  len(examples))
 
@@ -116,7 +116,7 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
 
         data_types = ["rgb", "depth", "mask"]
         full_camera_names = map(lambda x: ('_'.join(x), x[-1]), product(camera_names, data_types))
-        
+
         for camera_name, _ in full_camera_names:
             data_path = os.path.join(example_path, camera_name)
             if num_steps != len(os.listdir(data_path)):
@@ -126,8 +126,8 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
         for i in range(num_steps):
             # descriptions
             obs[i].misc['descriptions'] = descriptions
-           
-            for camera_name, camera_config in obs_config.camera_configs.items():                
+
+            for camera_name, camera_config in obs_config.camera_configs.items():
 
                 if camera_config.rgb:
                     data_path = os.path.join(example_path, f"{camera_name}_rgb")
@@ -135,7 +135,7 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                     image_path = os.path.join(data_path, image_name)
                     image = np.array(_resize_if_needed(Image.open(image_path), camera_config.image_size))
                     obs[i].perception_data[f"{camera_name}_rgb"] = image
-                
+
                 if camera_config.depth or camera_config.point_cloud:
                     data_path = os.path.join(example_path, f"{camera_name}_depth")
                     image_name = f"depth_{i:04d}.png"
@@ -148,7 +148,7 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                             far = obs[i].misc[f'{camera_name}_camera_far']
                             depth_image_m = near + image * (far - near)
                             obs[i].perception_data[f"{camera_name}_depth"] = camera_config.depth_noise.apply(depth_image_m)
-                        else:                        
+                        else:
                             obs[i].perception_data[f"{camera_name}_depth"] = camera_config.depth_noise.apply(image)
 
                     if camera_config.point_cloud:
@@ -160,30 +160,36 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         depth_image_m,
                         obs[i].misc[f'{camera_name}_camera_extrinsics'],
                         obs[i].misc[f'{camera_name}_camera_intrinsics'])
-               
+
 
                 if camera_config.mask:
                     data_path = os.path.join(example_path, f"{camera_name}_mask")
                     image_name = f"mask_{i:04d}.png"
                     image_path = os.path.join(data_path, image_name)
                     obs[i].perception_data[f"{camera_name}_mask"] = rgb_handles_to_mask(np.array(_resize_if_needed(Image.open(image_path), camera_config.image_size)))
-          
+
 
             # Remove low dim info if necessary
-            if not obs_config.joint_velocities:
-                obs[i].joint_velocities = None
-            if not obs_config.joint_positions:
-                obs[i].joint_positions = None
-            if not obs_config.joint_forces:
-                obs[i].joint_forces = None
-            if not obs_config.gripper_open:
-                obs[i].gripper_open = None
-            if not obs_config.gripper_pose:
-                obs[i].gripper_pose = None
-            if not obs_config.gripper_joint_positions:
-                obs[i].gripper_joint_positions = None
-            if not obs_config.gripper_touch_forces:
-                obs[i].gripper_touch_forces = None
+            robot_obs = (
+                (obs[i].right, obs[i].left)
+                if getattr(obs[i], "is_bimanual", False)
+                else (obs[i],)
+            )
+            for robot in robot_obs:
+                if not obs_config.joint_velocities:
+                    robot.joint_velocities = None
+                if not obs_config.joint_positions:
+                    robot.joint_positions = None
+                if not obs_config.joint_forces:
+                    robot.joint_forces = None
+                if not obs_config.gripper_open:
+                    robot.gripper_open = None
+                if not obs_config.gripper_pose:
+                    robot.gripper_pose = None
+                if not obs_config.gripper_joint_positions:
+                    robot.gripper_joint_positions = None
+                if not obs_config.gripper_touch_forces:
+                    robot.gripper_touch_forces = None
             if not obs_config.task_low_dim_state:
                 obs[i].task_low_dim_state = None
 
