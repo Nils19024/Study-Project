@@ -1,4 +1,6 @@
 from typing import List
+
+import numpy as np
 from pyrep.objects.shape import Shape
 from pyrep.objects.proximity_sensor import ProximitySensor
 from rlbench.backend.task import Task
@@ -17,6 +19,8 @@ class SweepToDustpan(Task):
         self.register_graspable_objects([broom])
         self.register_success_conditions(conditions)
 
+        self.dirts = dirts
+
     def init_episode(self, index: int) -> List[str]:
         return ['sweep dirt to dustpan',
                 'sweep the dirt up',
@@ -29,3 +33,9 @@ class SweepToDustpan(Task):
 
     def variation_count(self) -> int:
         return 1
+
+    def get_low_dim_state(self) -> np.ndarray:
+        shapes = [Shape('broom')]
+        states = [s.get_pose() for s in shapes]
+        return np.concatenate(states)
+

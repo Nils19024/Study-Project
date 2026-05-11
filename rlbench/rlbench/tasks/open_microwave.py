@@ -10,6 +10,7 @@ from rlbench.backend.task import Task
 class OpenMicrowave(Task):
 
     def init_task(self) -> None:
+        self._microwave_door = Shape('microwave_door')
         self.register_success_conditions([JointCondition(
             Joint('microwave_door_joint'), np.deg2rad(80))])
 
@@ -26,3 +27,6 @@ class OpenMicrowave(Task):
 
     def boundary_root(self) -> Object:
         return Shape('boundary_root')
+
+    def get_low_dim_state(self) -> np.ndarray:
+        return self._microwave_door.get_pose()

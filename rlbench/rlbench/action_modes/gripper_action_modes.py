@@ -148,10 +148,10 @@ class GripperJointPosition(GripperActionMode):
         Returns: Returns the min and max of the action.
         """
         return np.array([0]), np.array([0.04])
-    
+
 
 class BimanualGripperJointPosition(GripperJointPosition):
-    
+
     def action_pre_step(self, scene: Scene, action: np.ndarray):
 
         if not self._control_mode_set:
@@ -161,23 +161,25 @@ class BimanualGripperJointPosition(GripperJointPosition):
 
         assert_action_shape(action, self.action_shape(scene.robot))
 
-        right_action = action[:1].repeat(2) 
-        left_action = action[1:].repeat(2) 
+        right_action = action[:1].repeat(2)
+        left_action = action[1:].repeat(2)
 
         if not self._absolute_mode:
-            right_action = right_action + np.array(scene.robot.gripper.get_joint_positions())
-            left_action = left_action + np.array(scene.robot.gripper.get_joint_positions())
-            
+            right_action = right_action + np.array(
+                scene.robot.right_gripper.get_joint_positions())
+            left_action = left_action + np.array(
+                scene.robot.left_gripper.get_joint_positions())
+
         scene.robot.right_gripper.set_joint_target_positions(right_action)
         scene.robot.left_gripper.set_joint_target_positions(left_action)
 
     def action_post_step(self, scene: Scene, action: np.ndarray):
         scene.robot.right_gripper.set_joint_target_positions(
             scene.robot.right_gripper.get_joint_positions())
-        
+
         scene.robot.left_gripper.set_joint_target_positions(
-            scene.robot.left_gripper.get_joint_positions())        
-    
+            scene.robot.left_gripper.get_joint_positions())
+
     def action_shape(self, scene: Scene) -> tuple:
         return 2,
 
@@ -262,7 +264,7 @@ class UnimanualDiscrete(GripperActionMode):
 
 
 class BimanualDiscrete(Discrete):
-    
+
     def _actuate(self, scene, action):
 
         right_action = action[0]
@@ -322,7 +324,7 @@ class BimanualDiscrete(Discrete):
         if left_current_ee != left_action:
             if left_action == 0.0 and self._attach_grasped_objects:
                 right_grasped_objects = scene.robot.right_gripper.get_grasped_objects()
-                # If gripper close action, the check for grasp.                
+                # If gripper close action, the check for grasp.
                 for g_obj in scene.task.get_graspable_objects():
                     if g_obj in right_grasped_objects:
                         logging.warning("Object with name %s is already grasped by right robot", g_obj.get_name())

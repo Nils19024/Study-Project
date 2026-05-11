@@ -49,7 +49,7 @@ class BimanualHandoverItemEasy(BimanualTask):
         #    b.sample(item, min_distance=0.1)
 
         self.register_success_conditions(
-            [DetectedCondition(self.item, right_success_sensor),  
+            [DetectedCondition(self.item, right_success_sensor),
              DetectedCondition(self.item, left_success_sensor, negated=True),
              LiftedCondition(self.item, 0.8)])
 

@@ -38,3 +38,8 @@ class SlideBlockToTarget(Task):
         block_to_target = -np.linalg.norm(
             self._block.get_position() - self._target.get_position())
         return grip_to_block + block_to_target
+        
+    def get_low_dim_state(self) -> np.ndarray:
+        shapes = [self._target]
+        states = [s.get_pose() for s in shapes]
+        return np.concatenate(states)

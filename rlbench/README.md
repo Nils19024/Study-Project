@@ -2,16 +2,6 @@
 
 ![task grid image missing](readme_files/task_grid.png)
 
-## Modifications
- This is my fork of RLBench. Modifications include:
-- 6 new tasks, bug fixes, and extensions of existing tasks. See Appendix A in the [paper](https://peract.github.io/) for details.
-- Data generation also records if `ignore_collisions` was used with a waypoint for motion-planning. 
-- `data_generator.py` supports an "all_variations" setting that samples from all possible task variations. 
-
-I branched off `master` in Feb 2022, so this fork is not up to date with the latest changes in the official repo.
-
-## RLBench
-
 **RLBench** is an ambitious large-scale benchmark and learning environment 
 designed to facilitate research in a number of vision-guided manipulation
 research areas, including: reinforcement learning, imitation learning,
@@ -19,7 +9,6 @@ multi-task learning, geometric computer vision, and in particular,
 few-shot learning. [Click here for website and paper.](https://sites.google.com/corp/view/rlbench)
 
 **Contents:**
-- [Announcements](#announcements)
 - [Install](#install)
 - [Running Headless](#running-headless)
 - [Getting Started](#getting-started)
@@ -37,38 +26,6 @@ few-shot learning. [Click here for website and paper.](https://sites.google.com/
 - [Acknowledgements](#acknowledgements)
 - [Citation](#citation)
 
-## Announcements
-
-### 11 May 2022
-
-- Shaped rewards added for: **reach_target** and **take_lid_off_saucepan**. Pass `shaped_rewards=True` to `Environement` class
-
-### 18 February 2022
-
-- **Version 1.2.0 is live!** Note: This release will cause code-breaking API changes for action modes.
-
-### 1 July 2021
-
-- New instructions on headless GPU rendering [here](#running-headless)!
-
-### 8 September 2020
-
-- New tutorial series on task creation [here](https://www.youtube.com/watch?v=bKaK_9O3v7Y&list=PLsffAlO5lBTRiBwnkw2-x0U7t6TrNCkfc)!
-
-### 1 April 2020
-
-- We added a Discord channel to allow the RLBench community to help one another. Click the Discord badge above.
-
-### 28 January 2020
-
-- RLBench has been accepted to RA-L with presentation at ICRA!
-- Ability to easily swap out arms added. [See here](#swapping-arms).
-
-### 17 December 2019
-
-- Gym is now supported!
-
-
 ## Install
 
 RLBench is built around PyRep and V-REP. First head to the 
@@ -81,14 +38,9 @@ Now lets install RLBench:
 
 ```bash
 pip install -r requirements.txt
-pip install .
+pip install -e .
 ```
-Or you can install directly via pip
-```bash
-pip install git+https://github.com/stepjam/RLBench.git
-```
-
-And that's it!
+Make sure to install using the editable flag (-e)!
 
 ## Running Headless
 

@@ -86,3 +86,8 @@ class PourFromCupToCup(Task):
         for d in self.drops:
             d.remove()
         self.drops.clear()
+
+    def get_low_dim_state(self) -> np.ndarray:
+        objects = [self.cup_source, self.cup_target] + self.distractors
+        poses = [o.get_pose() for o in objects]
+        return np.concatenate(poses)

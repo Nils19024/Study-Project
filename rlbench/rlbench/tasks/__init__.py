@@ -111,24 +111,15 @@ from rlbench.tasks.water_plants import WaterPlants
 from rlbench.tasks.weighing_scales import WeighingScales
 from rlbench.tasks.wipe_desk import WipeDesk
 
-# new tasks added in the PerAct paper
-from rlbench.tasks.put_rubbish_in_color_bin import PutRubbishInColorBin
-from rlbench.tasks.place_wine_at_rack_location import PlaceWineAtRackLocation
-from rlbench.tasks.slide_block_to_color_target import SlideBlockToColorTarget
-from rlbench.tasks.sweep_to_dustpan_of_size import SweepToDustpanOfSize
-from rlbench.tasks.put_books_at_shelf_location import PutBooksAtShelfLocation
-from rlbench.tasks.set_clock_to_time import SetClockToTime
-
-# analysis tasks
-from rlbench.tasks.open_drawer_test_color_frame import OpenDrawerTestColorFrame
-from rlbench.tasks.open_drawer_test_color_full import OpenDrawerTestColorFull
-from rlbench.tasks.open_drawer_test_texture_frame import OpenDrawerTestTextureFrame
-from rlbench.tasks.open_drawer_test_texture_full import OpenDrawerTestTextureFull
-
-from rlbench.tasks.open_drawer_test_shape_small_body import OpenDrawerTestShapeSmallBody
-from rlbench.tasks.open_drawer_test_shape_square_handles import OpenDrawerTestShapeSquareHandles
-from rlbench.tasks.open_drawer_test_shape_large_handles import OpenDrawerTestShapeLargeHandles
-
+from rlbench.tasks.place_cups_m_m import PlaceCupsMM
+from rlbench.tasks.place_cups_m_m_r1 import PlaceCupsMMR1
+from rlbench.tasks.place_cups_m_m_r2 import PlaceCupsMMR2
+from rlbench.tasks.turn_tap_m_m import TurnTapMM
+from rlbench.tasks.turn_tap_m_m_r1 import TurnTapMMR1
+from rlbench.tasks.turn_tap_m_m_r2 import TurnTapMMR2
+from rlbench.tasks.open_drawer_m_m import OpenDrawerMM
+from rlbench.tasks.wipe_desk_m_m import WipeDeskMM
+from rlbench.tasks.change_channel_m_m import ChangeChannelMM
 
 FS10_V1 = {
     'train': [

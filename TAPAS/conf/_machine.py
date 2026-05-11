@@ -7,7 +7,9 @@ data_naming_config = DataNamingConfig(
 )
 
 
+CODE_ROOT = "/home/nils/Documents/Study Project/Code"
 CUDA_PATH = "/usr/local/cuda-11.1"
+COPPELIASIM_ROOT = CODE_ROOT + "/sim/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04"
 LD_LIBRARY_PATH = ":".join(
-    [CUDA_PATH + "/lib64", "/home/hartzj/CoppeliaSim_Edu_V4_1_0_Ubuntu18_04"]
+    [CUDA_PATH + "/lib64", COPPELIASIM_ROOT]
 )

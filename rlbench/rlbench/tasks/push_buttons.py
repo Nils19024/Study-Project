@@ -64,7 +64,7 @@ class PushButtons(Task):
         self.boundaries = Shape('push_buttons_boundary')
         # goal_conditions merely state joint conditions for push action for
         # each button regardless of whether the task involves pushing it
-        self.goal_conditions = [JointCondition(self.target_joints[n], 0.001)
+        self.goal_conditions = [JointCondition(self.target_joints[n], 0.003)
                                 for n in range(3)]
 
         self.register_waypoint_ability_start(0, self._move_above_next_target)
@@ -165,3 +165,9 @@ class PushButtons(Task):
     def _repeat(self):
         self.buttons_pushed += 1
         return self.buttons_pushed < self.buttons_to_push
+
+    def get_low_dim_state(self) -> np.ndarray:
+        shapes = self.target_buttons
+        states = [s.get_pose() for s in shapes]
+        return np.concatenate(states)
+

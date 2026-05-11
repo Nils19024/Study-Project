@@ -55,4 +55,5 @@ class PickAndLift(Task):
 
     def get_low_dim_state(self) -> np.ndarray:
         # One of the few tasks that have a custom low_dim_state function.
-        return np.concatenate([self.target_block.get_position(), self.success_detector.get_position()], 0)
+        # return np.concatenate([self.target_block.get_position(), self.success_detector.get_position()], 0)
+        return np.concatenate([self.target_block.get_pose(), self.success_detector.get_pose()], 0)

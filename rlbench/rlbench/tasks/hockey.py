@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 from rlbench.backend.task import Task
 from rlbench.backend.conditions import DetectedCondition, GraspedCondition
 from pyrep.objects.shape import Shape
@@ -8,12 +9,13 @@ from pyrep.objects.proximity_sensor import ProximitySensor
 class Hockey(Task):
 
     def init_task(self) -> None:
-        stick = Shape('hockey_stick')
+        self.stick = Shape('hockey_stick')
+        self.ball = Shape('hockey_ball')
+        self.goal = ProximitySensor('success')
         self.register_success_conditions([
-            DetectedCondition(Shape('hockey_ball'),
-                              ProximitySensor('success')),
-            GraspedCondition(self.robot.gripper, stick)])
-        self.register_graspable_objects([stick])
+            DetectedCondition(self.ball, self.goal),
+            GraspedCondition(self.robot.gripper, self.stick)])
+        self.register_graspable_objects([self.stick])
 
     def init_episode(self, index: int) -> List[str]:
         return ['hit the ball into the net',
@@ -27,3 +29,8 @@ class Hockey(Task):
 
     def variation_count(self) -> int:
         return 1
+
+    def get_low_dim_state(self):
+        objects = [self.stick, self.ball, self.goal]
+        poses = [o.get_pose() for o in objects]
+        return np.concatenate(poses)

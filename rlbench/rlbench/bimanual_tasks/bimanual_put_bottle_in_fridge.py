@@ -17,7 +17,7 @@ class BimanualPutBottleInFridge(BimanualTask):
         self.register_success_conditions(
             [DetectedCondition(bottle, ProximitySensor('success')),
              NothingGrasped(self.robot.right_gripper), NothingGrasped(self.robot.left_gripper)])
-        
+
         self.waypoint_mapping = defaultdict(lambda: 'left')
         for i in range(4):
             self.waypoint_mapping[f'waypoint{i}'] = 'right'

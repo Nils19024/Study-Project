@@ -142,7 +142,7 @@ class UnimanualPushSingleButtonLeft(BimanualTask):
                 button.set_color(rgb)
                 non_target_index += 1
 
-        
+
         left_tcp = Dummy('Panda_rightArm_tip')
         Dummy('waypoint2').set_position(position=(0,0,0), relative_to=left_tcp)
         Dummy('waypoint2').set_orientation(orientation=(0,0,0), relative_to=left_tcp)

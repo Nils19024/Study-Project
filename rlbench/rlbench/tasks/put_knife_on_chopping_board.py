@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Tuple
+from pyrep.objects.shape import Shape
 from pyrep.objects.proximity_sensor import ProximitySensor
 from pyrep.objects.shape import Shape
 from rlbench.backend.conditions import ConditionSet, DetectedCondition, \
@@ -31,3 +32,6 @@ class PutKnifeOnChoppingBoard(Task):
 
     def variation_count(self) -> int:
         return 1
+
+    def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
+        return [0, 0, 0], [0, 0, 0]

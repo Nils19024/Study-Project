@@ -49,13 +49,13 @@ def calculate_delta_pose(robot: Robot, action: np.ndarray):
 
 
 class ArmActionMode(ABC):
-    
+
     _callable_each_step = None
 
     def action(self, scene: Scene, action: np.ndarray):
         self.action_pre_step(scene, action)
         self.action_step(scene)
-        self.action_post_step(scene, action)    
+        self.action_post_step(scene, action)
 
     def action_step(self, scene: Scene):
         scene.step()
@@ -111,7 +111,7 @@ class JointVelocity(ArmActionMode):
         robot.arm.set_motor_locked_at_zero_velocity(True)
 
 
-class BimanualJointVelocity(ArmActionMode): 
+class BimanualJointVelocity(ArmActionMode):
 
     def action_pre_step(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene))
@@ -121,7 +121,6 @@ class BimanualJointVelocity(ArmActionMode):
         scene.robot.left_arm.set_joint_target_velocities(left_action)
 
     def action_post_step(self, scene: Scene, action: np.ndarray):
-        scene.robot.arm.set_joint_target_velocities(np.zeros_like(action))
         right_action = action[:7]
         left_action = action[7:]
         scene.robot.right_arm.set_joint_target_velocities(np.zeros_like(right_action))
@@ -135,7 +134,7 @@ class BimanualJointVelocity(ArmActionMode):
         robot.right_arm.set_motor_locked_at_zero_velocity(True)
         robot.left_arm.set_control_loop_enabled(False)
         robot.left_arm.set_motor_locked_at_zero_velocity(True)
-        
+
 
 class BimanualJointPosition(ArmActionMode):
 
@@ -144,14 +143,14 @@ class BimanualJointPosition(ArmActionMode):
 
     def action_pre_step(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene))
-        
+
         right_action = action[:7]
         left_action = action[7:]
 
         if not self._absolute_mode:
             right_action = np.array(scene.robot.right_arm.get_joint_positions()) + right_action
             left_action = np.array(scene.robot.left_arm.get_joint_positions()) + left_action
-            
+
         scene.robot.right_arm.set_joint_target_positions(right_action)
         scene.robot.left_arm.set_joint_target_positions(left_action)
 
@@ -160,7 +159,7 @@ class BimanualJointPosition(ArmActionMode):
             scene.robot.right_arm.get_joint_positions())
         scene.robot.left_arm.set_joint_target_positions(
             scene.robot.left_arm.get_joint_positions())
-    
+
     def action_shape(self, scene: Scene) -> tuple:
         return (14, )
         #return SUPPORTED_ROBOTS[scene.robot_setup][2],
@@ -286,7 +285,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
         qw, qx, qy, qz = list(new_rot)
         pose = [a_x + x, a_y + y, a_z + z] + [qx, qy, qz, qw]
         return pose
-    
+
     def set_callable_each_step(self, callable_each_step):
         self._callable_each_step = callable_each_step
 
@@ -304,7 +303,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
             success, terminate = scene.task.success()
             # If the task succeeds while traversing path, then break early
             if success:
-                break    
+                break
 
     def get_path(self, scene: Scene, action: np.ndarray, ignore_collisions: bool, arm: Arm, gripper: Gripper):
         if not self._absolute_mode and self._frame != 'end effector':
@@ -417,7 +416,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
     def action(self, scene: Scene, action: np.ndarray, ignore_collisions):
 
         assert_action_shape(action, self.action_shape(scene))
- 
+
         right_action = action[:7]
         left_action = action[7:]
 
@@ -437,7 +436,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
                 logging.warning("right path is none")
         except (ConfigurationPathError, InvalidActionError):
             pass
-        
+
         try:
             left_path = self.get_path(scene, left_action, left_ignore_collison, scene.robot.left_arm, scene.robot.left_gripper)
             if left_path:
@@ -446,7 +445,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
                 logging.warning("left path is none")
         except (ConfigurationPathError, InvalidActionError):
             pass
-        
+
 
         done = False
 
@@ -465,7 +464,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
             # If the task succeeds while traversing path, then break early
             if success:
                 break
-    
+
     def action_shape(self, scene: Scene) -> tuple:
         return 14,
 
