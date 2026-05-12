@@ -19,7 +19,7 @@ class LeftOpenDrawer(BimanualTask):
         self.waypoint_mapping = defaultdict(lambda: 'left')
         self.waypoint_mapping.update({'waypoint3': 'right'})
 
-
+        
 
     def init_episode(self, index: int) -> List[str]:
 
@@ -29,7 +29,7 @@ class LeftOpenDrawer(BimanualTask):
 
         Dummy('waypoint3').set_position(position=(0,0,0),relative_to=right_tcp)
         Dummy('waypoint3').set_orientation(orientation=(0,0,0), relative_to=right_tcp)
-
+    
 
         option = self._options[index]
         self._waypoint1.set_position(self._anchors[index].get_position())

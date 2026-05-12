@@ -31,6 +31,13 @@ class TakeLidOffSaucepan(Task):
     def variation_count(self) -> int:
         return 1
 
+    def get_low_dim_state(self) -> np.ndarray:
+        # return ground truth lid pose for ground truth keypoints
+        # as we train this task in single-object mode, we only need the lid's
+        # position, not the pot's
+        return np.array([self.lid.get_pose()])
+        # TODO: add pot, recollect data!
+
     def reward(self) -> float:
         grasp_lid_reward = -np.linalg.norm(
             self.lid.get_position() - self.robot.arm.get_tip().get_position())

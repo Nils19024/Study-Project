@@ -7,6 +7,10 @@ from pyrep import PyRep
 from pyrep.objects import VisionSensor
 from pyrep.robots.arms.panda import Panda
 from pyrep.robots.end_effectors.panda_gripper import PandaGripper
+from pyrep.robots.arms.dual_panda import PandaLeft
+from pyrep.robots.arms.dual_panda import PandaRight
+from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperRight
+from pyrep.robots.end_effectors.dual_panda_gripper import PandaGripperLeft
 
 from rlbench import utils
 from rlbench.action_modes.action_mode import ActionMode
@@ -111,17 +115,7 @@ class Environment(object):
         if self._robot_setup == 'dual_panda':
 
             logging.info("Using dual panda robot")
-            try:
-                from pyrep.robots.arms.dual_panda import PandaLeft
-                from pyrep.robots.arms.dual_panda import PandaRight
-                from pyrep.robots.end_effectors.dual_panda_gripper import (
-                    PandaGripperLeft, PandaGripperRight)
-            except ImportError as exc:
-                raise RuntimeError(
-                    "robot_setup='dual_panda' requires a PyRep build with "
-                    "dual_panda arm and gripper classes."
-                ) from exc
-
+           
             #panda_arm = Panda()
             #panda_pos = panda_arm.get_position()
             #panda_arm.remove()
@@ -131,8 +125,8 @@ class Environment(object):
             right_gripper = PandaGripperRight()
             left_gripper = PandaGripperLeft()
 
-            # ..not updating position as we assume that the scene already contains two pandas which are placed correctly
-            #relative_left_position = left_arm.get_position(relative_to=right_arm)
+            # ..not updating position as we assume that the scene already contains two pandas which are placed correctly     
+            #relative_left_position = left_arm.get_position(relative_to=right_arm)            
             #right_arm.set_position(panda_pos)
             #left_arm.set_position(relative_left_position, relative_to=right_arm)
 

@@ -1,6 +1,4 @@
 from typing import List
-
-import numpy as np
 from pyrep.objects.dummy import Dummy
 from pyrep.objects.joint import Joint
 from rlbench.backend.task import Task
@@ -38,8 +36,3 @@ class TurnTap(Task):
 
     def variation_count(self) -> int:
         return 2
-
-    def get_low_dim_state(self) -> np.ndarray:
-        shapes = [self.left_joint]
-        states = [s.get_pose() for s in shapes]
-        return np.concatenate(states)

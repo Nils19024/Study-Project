@@ -10,7 +10,6 @@ from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.const import colors
 
 MAX_STACKED_BLOCKS = 3
-MIN_STACKED_BLOCKS = 3
 DISTRACTORS = 4
 
 
@@ -27,9 +26,6 @@ class StackBlocks(Task):
         self.boundaries = [Shape('stack_blocks_boundary%d' % i)
                            for i in range(4)]
 
-        # Drop-off zone
-        self.drop_off_zone = Shape('stack_blocks_target_plane')
-
         self.register_graspable_objects(self.target_blocks + self.distractors)
 
         self.register_waypoint_ability_start(0, self._move_above_next_target)
@@ -40,7 +36,7 @@ class StackBlocks(Task):
     def init_episode(self, index: int) -> List[str]:
         # For each color, we want to have 2, 3 or 4 blocks stacked
         color_index = int(index / MAX_STACKED_BLOCKS)
-        self.blocks_to_stack = MIN_STACKED_BLOCKS + index % MAX_STACKED_BLOCKS
+        self.blocks_to_stack = 2 + index % MAX_STACKED_BLOCKS
         color_name, color_rgb = colors[color_index]
         for b in self.target_blocks:
             b.set_color(color_rgb)
@@ -63,7 +59,6 @@ class StackBlocks(Task):
         b = SpawnBoundary(self.boundaries)
         for block in self.target_blocks + self.distractors:
             b.sample(block, min_distance=0.1)
-            self._canonicalize_yaw_mod_90(block)
 
         return ['stack %d %s blocks' % (self.blocks_to_stack, color_name),
                 'place %d of the %s cubes on top of each other'
@@ -91,9 +86,18 @@ class StackBlocks(Task):
         w2.set_orientation([ox, oy, -oz])
 
     def _move_above_drop_zone(self, waypoint):
-        x, y, z = self.drop_off_zone.get_position()
+        target = Shape('stack_blocks_target_plane')
+        x, y, z = target.get_position()
         waypoint.get_waypoint_object().set_position(
-            [x, y, z + 0.08 + 0.06 * self.blocks_stacked])
+            [x, y, z + 0.08 + 0.06 * self.blocks_stacked + 0.05])
+
+    def _is_last(self, waypoint):
+        last = self.blocks_stacked == self.blocks_to_stack - 1
+        waypoint.skip = last
+
+    def _is_last(self, waypoint):
+        last = self.blocks_stacked == self.blocks_to_stack - 1
+        waypoint.skip = last
 
     def _is_last(self, waypoint):
         last = self.blocks_stacked == self.blocks_to_stack - 1
@@ -102,17 +106,3 @@ class StackBlocks(Task):
     def _repeat(self):
         self.blocks_stacked += 1
         return self.blocks_stacked < self.blocks_to_stack
-
-    def _canonicalize_yaw_mod_90(self, shape):
-        x_rot, y_rot, z_rot = shape.get_orientation()
-
-        # modulo 90° (π/2)
-        z_rot = np.mod(z_rot, np.pi / 2.0) + np.pi / 2.0
-
-        # Set new orientation
-        shape.set_orientation([x_rot, y_rot, z_rot])
-
-    def get_low_dim_state(self) -> np.ndarray:
-        shapes = self.target_blocks + self.distractors + [self.drop_off_zone]
-        states = [s.get_pose() for s in shapes]
-        return np.concatenate(states)

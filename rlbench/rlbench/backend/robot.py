@@ -29,7 +29,7 @@ class Robot(ABC):
     @abstractmethod
     def is_in_collision(self):
         pass
-
+    
     @abstractmethod
     def zero_velocity(self):
         pass
@@ -71,7 +71,7 @@ class UnimanualRobot(Robot):
     @Robot.is_bimanual.getter
     def is_bimanual(self):
         return False
-
+    
 
 class BimanualRobot(Robot):
 

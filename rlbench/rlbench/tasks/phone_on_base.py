@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 
 from pyrep.objects.proximity_sensor import ProximitySensor
 from pyrep.objects.shape import Shape
@@ -10,10 +11,11 @@ from rlbench.backend.task import Task
 class PhoneOnBase(Task):
 
     def init_task(self) -> None:
-        phone = Shape('phone')
-        self.register_graspable_objects([phone])
+        self.phone = Shape('phone')
+        self.phone_case = Shape('phone_case')
+        self.register_graspable_objects([self.phone])
         self.register_success_conditions([
-            DetectedCondition(phone, ProximitySensor('success')),
+            DetectedCondition(self.phone, ProximitySensor('success')),
             NothingGrasped(self.robot.gripper)
         ])
 
@@ -27,3 +29,8 @@ class PhoneOnBase(Task):
 
     def variation_count(self) -> int:
         return 1
+
+    def get_low_dim_state(self) -> np.ndarray:
+        # return ground truth phone pose for ground truth keypoints
+        return np.array([self.phone_case.get_pose(),
+                         self.phone.get_pose()])

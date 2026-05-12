@@ -74,7 +74,7 @@ class BimanualMoveArmThenGripper(MoveArmThenGripper):
         right_arm_action = np.array(right_action[:arm_action_size])
         left_arm_action = np.array(left_action[:arm_action_size])
 
-        arm_action = np.concatenate([right_arm_action, left_arm_action], axis=0)
+        arm_action = np.concatenate([right_arm_action, left_arm_action], axis=0)        
 
         right_ee_action = np.array(right_action[arm_action_size:arm_action_size+ee_action_size])
         left_ee_action = np.array(left_action[arm_action_size:arm_action_size+ee_action_size])
@@ -139,7 +139,7 @@ class BimanualJointPositionActionMode(ActionMode):
 
         assert(action.shape == (16,))
 
-
+        
         arm_act_size = np.prod(self.arm_action_mode.action_shape(scene))
         assert(arm_act_size == 14)
 

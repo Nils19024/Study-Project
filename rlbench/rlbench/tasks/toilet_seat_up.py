@@ -1,7 +1,6 @@
 from typing import List, Tuple
 import numpy as np
 from pyrep.objects.joint import Joint
-from pyrep.objects.dummy import Dummy
 from rlbench.backend.conditions import JointCondition
 from rlbench.backend.task import Task
 
@@ -9,7 +8,6 @@ from rlbench.backend.task import Task
 class ToiletSeatUp(Task):
 
     def init_task(self) -> None:
-        self.waypoint1 = Dummy('waypoint1')
         self.register_success_conditions([
             JointCondition(Joint('toilet_seat_up_revolute_joint'), 1.40)])
 
@@ -27,6 +25,3 @@ class ToiletSeatUp(Task):
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0.0, 0.0, -np.pi / 4.], [0.0, 0.0, np.pi / 4.]
-
-    def get_low_dim_state(self) -> np.ndarray:
-        return self.waypoint1.get_pose()

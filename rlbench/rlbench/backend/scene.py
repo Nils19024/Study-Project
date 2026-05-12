@@ -8,6 +8,7 @@ from pyrep.objects import Dummy
 from pyrep.objects.shape import Shape
 from pyrep.objects.vision_sensor import VisionSensor
 from pyrep.robots.arms.arm import Arm
+from pyrep.robots.arms.dual_panda import PandaLeft, PandaRight
 from pyrep.robots.end_effectors.gripper import Gripper
 
 from rlbench.backend.exceptions import (
@@ -55,7 +56,7 @@ class Scene(object):
         else:
             self._start_arm_joint_pos = robot.arm.get_joint_positions()
             self._starting_gripper_joint_pos = robot.gripper.get_joint_positions()
-
+    
         self._workspace = Shape('workspace')
         self._workspace_boundary = SpawnBoundary([self._workspace])
 
@@ -94,13 +95,13 @@ class Scene(object):
         self._step_callback = None
 
         if self.robot.is_bimanual:
-               self._robot_shapes = [self.robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE),
+               self._robot_shapes = [self.robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE), 
                self.robot.left_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)]
                self._right_execute_demo_joint_position_action = None
                self._left_execute_demo_joint_position_action = None
         else:
             self._robot_shapes = self.robot.arm.get_objects_in_tree(
-                object_type=ObjectType.SHAPE)
+                object_type=ObjectType.SHAPE)           
             self._execute_demo_joint_position_action = None
 
     def load(self, task: Task) -> None:
@@ -182,17 +183,17 @@ class Scene(object):
             self.reset_unimanual()
 
         self.robot.zero_velocity()
-
+        
         if self.task is not None and self._has_init_task:
             self.task.cleanup_()
             self.task.restore_state(self._initial_task_state)
         self.task.set_initial_objects_in_scene()
 
     def reset_unimanual(self) -> None:
-        arm, gripper = self._initial_robot_state
+        arm, gripper = self._initial_robot_state   
         self.pyrep.set_configuration_tree(arm)
         self.pyrep.set_configuration_tree(gripper)
-
+        
         self.robot.arm.set_joint_positions(self._start_arm_joint_pos, disable_dynamics=True)
         self.robot.gripper.set_joint_positions(
             self._starting_gripper_joint_pos, disable_dynamics=True)
@@ -200,10 +201,10 @@ class Scene(object):
 
     def reset_bimanual(self) -> None:
 
-        for arm, gripper in self._initial_robot_state:
+        for arm, gripper in self._initial_robot_state:        
             self.pyrep.set_configuration_tree(arm)
             self.pyrep.set_configuration_tree(gripper)
-
+        
         self.robot.right_arm.set_joint_positions(self._start_arm_joint_pos[0], disable_dynamics=True)
         self.robot.right_gripper.set_joint_positions(self._starting_gripper_joint_pos[0], disable_dynamics=True)
 
@@ -250,7 +251,7 @@ class Scene(object):
                 mask = mask_fn(sensor.capture_rgb())
             return mask
 
-        for camera_name, camera_config in self._obs_config.camera_configs.items():
+        for camera_name, camera_config in self._obs_config.camera_configs.items():            
 
             rgb_data, depth_data, pcd_data = get_rgb_depth(self.camera_sensors[camera_name], camera_config.rgb, camera_config.depth, camera_config.point_cloud,
             camera_config.rgb_noise, camera_config.depth_noise, camera_config.depth_in_meters)
@@ -261,10 +262,10 @@ class Scene(object):
                 mask_data = get_mask(self.camera_sensors_mask[camera_name], lambda x: x)
             else:
                 mask_data = None
-
+                
             perception_data.update({f'{camera_name}_rgb': rgb_data, f'{camera_name}_depth': depth_data, f'{camera_name}_point_cloud': pcd_data,
                                      f'{camera_name}_mask': mask_data})
-
+    
 
 
 
@@ -282,7 +283,7 @@ class Scene(object):
                 joint_positions = self._obs_config.joint_positions_noise.apply(joint_positions)
             else:
                 joint_positions = None
-
+            
             if self._obs_config.joint_forces:
                 fs = arm.get_joint_forces()
                 vels = arm.get_joint_target_velocities()
@@ -334,14 +335,14 @@ class Scene(object):
             else:
                 ignore_collisions = None
 
-            return {"joint_velocities": joint_velocities,
+            return {"joint_velocities": joint_velocities, 
             "joint_positions": joint_positions,
-            "joint_forces": joint_forces,
+            "joint_forces": joint_forces, 
             "gripper_open": gripper_open,
             "gripper_pose": gripper_pose,
             "gripper_matrix": gripper_matrix,
             "gripper_touch_forces": gripper_touch_forces,
-            "gripper_joint_positions": gripper_joint_positions,
+            "gripper_joint_positions": gripper_joint_positions, 
             "ignore_collisions": ignore_collisions}
 
 
@@ -351,9 +352,9 @@ class Scene(object):
         else:
             observation_data.update(get_proprioception(self.robot.arm, self.robot.gripper))
 
-        task_low_dim_state = (
+        task_low_dim_state=(
             self.task.get_low_dim_state() if
-            self._obs_config.task_low_dim_state else None)
+            self._obs_config.task_low_dim_state else None),
 
         observation_data.update({
             "task_low_dim_state": task_low_dim_state,
@@ -394,17 +395,17 @@ class Scene(object):
                 if point.skip:
                     continue
 
-                colliding_shapes = []
+                colliding_shapes = []                
 
                 grasped_objects = self.robot.gripper.get_grasped_objects()
                 colliding_shapes = [s for s in self.pyrep.get_objects_in_tree(
                 object_type=ObjectType.SHAPE) if s not in grasped_objects
                                 and s not in self._robot_shapes and s.is_collidable()
                                 and self.robot.arm.check_arm_collision(s)]
-
+            
 
                 logging.info("got list of colliding objects: %s", colliding_shapes)
-
+                
                 [s.set_collidable(False) for s in colliding_shapes]
                 try:
                     path = point.get_path()
@@ -436,7 +437,7 @@ class Scene(object):
 
                 if len(ext) > 0:
                     self._handle_extensions_strings(ext, do_record)
-
+      
 
             if not self.task.should_repeat_waypoints() or success:
                 return success
@@ -469,7 +470,7 @@ class Scene(object):
         while len(right_waypoints) > len(left_waypoints):
             left_waypoints.append(left_waypoints[-1])
 
-
+        
         while True:
             success = False
             self._ignore_collisions_for_current_waypoint = False
@@ -482,7 +483,7 @@ class Scene(object):
                     print("skipping waypoints!")
                     logging.error("skipping waypoints!")
                     continue
-
+        
                 grasped_objects = self.robot.right_gripper.get_grasped_objects() + self.robot.left_gripper.get_grasped_objects()
                 colliding_shapes = []
                 for s in self.pyrep.get_objects_in_tree(object_type=ObjectType.SHAPE):
@@ -496,9 +497,9 @@ class Scene(object):
                         colliding_shapes.append(s)
                     elif self.robot.left_arm.check_arm_collision(s):
                         colliding_shapes.append(s)
-
+                
                 logging.debug("got list of colliding objects: %s", ", ".join([s.get_name()  for s in colliding_shapes]))
-
+                
                 [s.set_collidable(False) for s in colliding_shapes]
                 try:
                     right_path = right_point.get_path()
@@ -519,7 +520,7 @@ class Scene(object):
                 left_done = False
                 success = False
                 while not (right_done and left_done):
-                    if not right_done and right_path.step():
+                    if not right_done and right_path.step():                
                         right_point.end_of_path()
                         right_path.clear_visualization()
                         for ext in right_ext.split(";"):
@@ -569,7 +570,7 @@ class Scene(object):
             success = self.execute_waypoints_bimanual(do_record)
         else:
             success = self.execute_waypoints_unimanual(do_record)
-
+            
 
         # Some tasks may need additional physics steps
         # (e.g. ball rowling to goal)
@@ -587,7 +588,7 @@ class Scene(object):
             raise DemoError('Demo was completed, but was not successful.',
                             self.task)
         return Demo(demo)
-
+    
     def _handle_extensions_strings(self, ext, do_record):
         """
         Extensions strings are defined in the field under the 'Common Tab' when editing a waypoint
@@ -675,13 +676,13 @@ class Scene(object):
 
         for camera_name, camera_config in self._obs_config.camera_configs.items():
             _set_rgb_props(self.camera_sensors[camera_name], camera_config.rgb, camera_config.depth, camera_config)
-
+   
             if camera_config.mask:
                 _set_mask_props(
                 self.camera_sensors_mask[camera_name],
                 camera_config.mask,
                 camera_config)
-
+       
 
     def _place_task(self) -> None:
         self._workspace_boundary.clear()
@@ -705,12 +706,12 @@ class Scene(object):
                 })
         misc.update({"variation_index": self._variation_index})
         if self.robot.is_bimanual and self._right_execute_demo_joint_position_action is not None:
-
+            
             misc.update({"right_executed_demo_joint_position_action": self._right_execute_demo_joint_position_action,
                          "left_executed_demo_joint_position_action": self._left_execute_demo_joint_position_action})
             self._right_execute_demo_joint_position_action = None
             self._left_execute_demo_joint_position_action = None
-
+        
         elif not self.robot.is_bimanual and self._execute_demo_joint_position_action is not None:
             misc.update({"executed_demo_joint_position_action": self._execute_demo_joint_position_action})
             self._execute_demo_joint_position_action = None

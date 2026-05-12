@@ -1,5 +1,4 @@
 from typing import List
-import numpy as np
 from pyrep.const import PrimitiveShape
 from pyrep.objects.shape import Shape
 from pyrep.objects.proximity_sensor import ProximitySensor
@@ -61,8 +60,3 @@ class WipeDesk(Task):
                           max_rotation=(0.00, 0.00, 0.00))
             self.dirt_spots.append(spot)
         self.b.clear()
-
-    def get_low_dim_state(self) -> np.ndarray:
-        shapes = [self.sponge]  # + self.dirt_spots
-        states = [s.get_pose() for s in shapes]
-        return np.concatenate(states)
