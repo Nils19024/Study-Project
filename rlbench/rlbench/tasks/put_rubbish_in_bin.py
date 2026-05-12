@@ -9,11 +9,11 @@ from rlbench.backend.conditions import DetectedCondition
 class PutRubbishInBin(Task):
 
     def init_task(self):
-        success_sensor = ProximitySensor('success')
+        self.success_sensor = ProximitySensor('success')
         self.rubbish = Shape('rubbish')
         self.register_graspable_objects([self.rubbish])
         self.register_success_conditions(
-            [DetectedCondition(self.rubbish, success_sensor)])
+            [DetectedCondition(self.rubbish, self.success_sensor)])
 
     def init_episode(self, index: int) -> List[str]:
         tomato1 = Shape('tomato1')
@@ -37,3 +37,8 @@ class PutRubbishInBin(Task):
 
     def variation_count(self) -> int:
         return 1
+
+    def get_low_dim_state(self) -> np.ndarray:
+        # return ground truth rubbish and bin pose for ground truth keypoints
+        return np.array([self.success_sensor.get_pose(),
+                         self.rubbish.get_pose()])

@@ -181,7 +181,7 @@ class LoadedTask(object):
 
         scene_background = ["Wall1", "Wall2", "Wall3", "Wall4", "Floor", "Roof", "ResizableFloor_5_25_visibleElement"]
 
-        for object_name in scene_background:
+        for object_name in scene_background: 
             Shape(object_name).set_renderable(False)
 
         cam_motion = CircleCameraMotion(cam, Dummy('cam_cinematic_base'), 0.005)
@@ -194,13 +194,13 @@ class LoadedTask(object):
         success, terminate = self.task.success()
 
 
-        recording_output_path = f"/tmp/rlbench_video_{self.task_file[:-3]}.mp4"
+        recording_output_path = f"/tmp/rlbench_video_{self.task_file[:-3]}.mp4" 
 
         tr.save(recording_output_path, f"Demo for task {self.task_file} success={success}", 1    )
 
         print(f"Saving video to {recording_output_path}")
 
-        for object_name in scene_background:
+        for object_name in scene_background: 
             Shape(object_name).set_renderable(True)
 
         if success:
@@ -410,10 +410,10 @@ if __name__ == '__main__':
                 [(pr.step(), scene.get_observation()) for _ in range(100)]
             elif inp == 'd':
                 loaded_task.new_demo()
-                input('Press enter to continue')
+                input('Press enter to continue')       
             elif inp == 'r':
                 loaded_task.record_demo()
-                input('Press enter to continue')
+                input('Press enter to continue')            
             elif inp == 'v':
                 loaded_task.new_variation()
             elif inp == 'e':

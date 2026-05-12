@@ -81,7 +81,7 @@ class BimanualHandoverItem(BimanualTask):
         left_success_sensor = ProximitySensor('Panda_leftArm_gripper_attachProxSensor')
 
         self.register_success_conditions(
-            [DetectedCondition(self.items[0], right_success_sensor),
+            [DetectedCondition(self.items[0], right_success_sensor),  
              DetectedCondition(self.items[0], left_success_sensor, negated=True),
              LiftedCondition(self.items[0], 0.8)])
 
@@ -90,7 +90,7 @@ class BimanualHandoverItem(BimanualTask):
 
     def variation_count(self) -> int:
         return len(colors)
-
+    
     #def boundary_root(self) -> Object:
     #    return Shape('handover_item_boundary')
 

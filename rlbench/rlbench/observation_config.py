@@ -1,4 +1,5 @@
 from typing import Dict
+from dataclasses import dataclass
 
 from pyrep.const import RenderMode
 from rlbench.noise_model import NoiseModel, Identity
@@ -36,13 +37,11 @@ class CameraConfig(object):
 
 
 
+#@dataclass
 class ObservationConfig(object):
+
+    
     def __init__(self,
-                 left_shoulder_camera: CameraConfig = None,
-                 right_shoulder_camera: CameraConfig = None,
-                 overhead_camera: CameraConfig = None,
-                 wrist_camera: CameraConfig = None,
-                 front_camera: CameraConfig = None,
                  camera_configs: Dict[str, CameraConfig] = None,
                  joint_velocities=True,
                  joint_velocities_noise: NoiseModel=Identity(),
@@ -57,32 +56,11 @@ class ObservationConfig(object):
                  gripper_touch_forces=False,
                  wrist_camera_matrix=False,
                  record_gripper_closing=False,
-                 task_low_dim_state=False,
+                 task_low_dim_state=True,
                  record_ignore_collisions=True,
                  robot_name=''
                  ):
-        self.left_shoulder_camera = (
-            CameraConfig() if left_shoulder_camera is None
-            else left_shoulder_camera)
-        self.right_shoulder_camera = (
-            CameraConfig() if right_shoulder_camera is None
-            else right_shoulder_camera)
-        self.overhead_camera = (
-            CameraConfig() if overhead_camera is None
-            else overhead_camera)
-        self.wrist_camera = (
-            CameraConfig() if wrist_camera is None
-            else wrist_camera)
-        self.front_camera = (
-            CameraConfig() if front_camera is None
-            else front_camera)
-        self.camera_configs = camera_configs or {
-            'left_shoulder': self.left_shoulder_camera,
-            'right_shoulder': self.right_shoulder_camera,
-            'overhead': self.overhead_camera,
-            'wrist': self.wrist_camera,
-            'front': self.front_camera,
-        }
+        self.camera_configs = camera_configs or dict()
         self.joint_velocities = joint_velocities
         self.joint_velocities_noise = joint_velocities_noise
         self.joint_positions = joint_positions
@@ -105,7 +83,7 @@ class ObservationConfig(object):
         self.set_all_low_dim(value)
 
     def set_all_high_dim(self, value: bool):
-        for config in self.camera_configs.values():
+        for _, config in self.camera_configs:
             config.set_all(value)
 
     def set_all_low_dim(self, value: bool):

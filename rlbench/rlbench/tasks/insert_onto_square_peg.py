@@ -24,7 +24,6 @@ class InsertOntoSquarePeg(Task):
     def init_episode(self, index: int) -> List[str]:
         color_name, color_rgb = colors[index]
         spokes = [Shape('pillar0'), Shape('pillar1'), Shape('pillar2')]
-        self.spokes = spokes
         chosen_pillar = np.random.choice(spokes)
         chosen_pillar.set_color(color_rgb)
         _, _, z = self._success_centre.get_position()
@@ -46,9 +45,3 @@ class InsertOntoSquarePeg(Task):
 
     def variation_count(self) -> int:
         return len(colors)
-    
-    def get_low_dim_state(self) -> np.ndarray:
-        shapes = [self._square_ring, self._success_centre]
-        states = [s.get_pose() for s in shapes]
-        return np.concatenate(states)
-

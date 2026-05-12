@@ -1,6 +1,5 @@
 from rlbench.backend.task import Task
 from typing import List
-import numpy as np
 from pyrep.objects.shape import Shape
 from pyrep.objects.proximity_sensor import ProximitySensor
 from rlbench.backend.conditions import GraspedCondition, DetectedCondition
@@ -9,12 +8,11 @@ from rlbench.backend.conditions import GraspedCondition, DetectedCondition
 class ScoopWithSpatula(Task):
 
     def init_task(self) -> None:
-        self._spatula = Shape('scoop_with_spatula_spatula')
-        self._cuboid = Shape('Cuboid')
-        self.register_graspable_objects([self._spatula])
+        spatula = Shape('scoop_with_spatula_spatula')
+        self.register_graspable_objects([spatula])
         self.register_success_conditions([
-            DetectedCondition(self._cuboid, ProximitySensor('success')),
-            GraspedCondition(self.robot.gripper, self._spatula)
+            DetectedCondition(Shape('Cuboid'), ProximitySensor('success')),
+            GraspedCondition(self.robot.gripper, spatula)
         ])
 
     def init_episode(self, index: int) -> List[str]:
@@ -27,8 +25,3 @@ class ScoopWithSpatula(Task):
 
     def variation_count(self) -> int:
         return 1
-
-    def get_low_dim_state(self) -> np.ndarray:
-        shapes = [self._spatula, self._cuboid]
-        states = [s.get_pose() for s in shapes]
-        return np.concatenate(states)

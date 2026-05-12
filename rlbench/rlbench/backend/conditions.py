@@ -16,6 +16,11 @@ class Condition(object):
         pass
 
 
+class ImpossibleCondition(Condition):
+    def condition_met(self):
+        return False, False
+
+
 class ColorCondition(object):
     def _init_(self, shape: Shape, success_rgb: List[float]):
         self.shape = shape

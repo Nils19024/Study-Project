@@ -28,9 +28,3 @@ class StackWine(Task):
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, -np.pi / 4.], [0, 0, np.pi / 4.]
-        
-    def get_low_dim_state(self) -> np.ndarray:
-        shapes = [Shape("wine_bottle"), ProximitySensor("success")]
-        states = [s.get_pose() for s in shapes]
-        return np.concatenate(states)
-

@@ -58,8 +58,8 @@ class TaskEnvironment(object):
             self._robot_shapes = self._robot.right_arm.get_objects_in_tree(object_type=ObjectType.SHAPE) + self._robot.left_arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
         else:
             self._robot_shapes = self._robot.arm.get_objects_in_tree(object_type=ObjectType.SHAPE)
-
-
+        
+  
     def get_name(self) -> str:
         return self._task.get_name()
 

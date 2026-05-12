@@ -19,7 +19,7 @@ class CoordinatedTakeShoesOutOfBox(BimanualTask):
             DetectedCondition(shoe2, success_sensor),
             NothingGrasped(self.robot.right_gripper),
             NothingGrasped(self.robot.left_gripper)])
-
+        
         self.waypoint_mapping = defaultdict(lambda: 'right')
         for i in range(1,5):
             self.waypoint_mapping[f'waypoint{i}'] = 'left'
@@ -36,9 +36,9 @@ class CoordinatedTakeShoesOutOfBox(BimanualTask):
 
     def variation_count(self) -> int:
         return 1
-
+    
     def is_static_workspace(self):
         return True
-
+    
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, -np.pi / 8], [0, 0, np.pi / 8]

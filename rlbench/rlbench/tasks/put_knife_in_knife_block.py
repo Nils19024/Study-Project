@@ -1,5 +1,4 @@
 from typing import List, Tuple
-import numpy as np
 from pyrep.objects.dummy import Dummy
 from pyrep.objects.proximity_sensor import ProximitySensor
 from pyrep.objects.shape import Shape
@@ -42,8 +41,3 @@ class PutKnifeInKnifeBlock(Task):
 
     def base_rotation_bounds(self) -> Tuple[List[float], List[float]]:
         return [0, 0, 0], [0, 0, 0]
-
-    def get_low_dim_state(self):
-        objects = [self._knife_base, self._knife_block, self._chopping_board]
-        poses = [o.get_pose() for o in objects]
-        return np.concatenate(poses)

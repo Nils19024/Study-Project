@@ -1,8 +1,11 @@
+from abc import abstractmethod
 import numpy as np
+from typing import List
 from typing import Dict
 from typing import Any
 
 from dataclasses import dataclass
+from dataclasses import field
 from enum import Enum
 
 
@@ -13,7 +16,7 @@ class ImageType(Enum):
 
 @dataclass
 class CameraImage:
-
+    
     name: str
     dtype: ImageType
     data: np.ndarray
@@ -25,27 +28,20 @@ class Observation:
     #..todo:: replace
 
     perception_data: Dict[str, np.ndarray]
-
+  
     task_low_dim_state: np.ndarray
-
+    
     misc: Dict[str, Any]
 
     @property
+    @abstractmethod
     def is_bimanual(self):
-        return False
-
-    def __getattr__(self, name: str):
-        if name.endswith(("_rgb", "_depth", "_mask", "_point_cloud")):
-            try:
-                return self.perception_data[name]
-            except KeyError:
-                pass
-        raise AttributeError(name)
+        pass
 
 
 #..todo:: rename to ProprioceptionObservation
 
-@dataclass
+@dataclass 
 class UnimanualObservationData:
 
     joint_velocities: np.ndarray
@@ -61,8 +57,8 @@ class UnimanualObservationData:
 
 @dataclass
 class UnimanualObservation(UnimanualObservationData, Observation):
-
-
+    
+    
     @Observation.is_bimanual.getter
     def is_bimanual(self):
         return False
@@ -84,7 +80,7 @@ class UnimanualObservation(UnimanualObservationData, Observation):
 
 @dataclass
 class BimanualObservation(Observation):
-
+    
     right: UnimanualObservationData = None
     left: UnimanualObservationData = None
 
@@ -92,21 +88,18 @@ class BimanualObservation(Observation):
     def is_bimanual(self):
         return True
 
-    def get_low_dim_data(self, robot: UnimanualObservationData = None) -> np.ndarray:
+    def get_low_dim_data(self, robot: UnimanualObservationData) -> np.ndarray:
         """Gets a 1D array of all the low-dimensional obseervations.
 
         :return: 1D array of observations.
         """
-        if robot is None:
-            return np.concatenate([
-                self.get_low_dim_data(self.right),
-                self.get_low_dim_data(self.left),
-            ])
         low_dim_data = [] if robot.gripper_open is None else [[robot.gripper_open]]
-        for data in [robot.joint_velocities, robot.joint_positions,
-                     robot.joint_forces, robot.gripper_pose,
-                     robot.gripper_joint_positions, robot.gripper_touch_forces,
-                     self.task_low_dim_state]:
+        #for data in [robot.joint_velocities, robot.joint_positions,
+        #             robot.joint_forces,
+        #             robot.gripper_pose, robot.gripper_joint_positions,
+        #             robot.gripper_touch_forces, self.task_low_dim_state]:
+
+        for data in [robot.gripper_joint_positions]:
             if data is not None:
                 low_dim_data.append(data)
         return np.concatenate(low_dim_data) if len(low_dim_data) > 0 else np.array([])

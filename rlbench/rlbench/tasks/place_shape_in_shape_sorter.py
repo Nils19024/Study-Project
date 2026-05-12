@@ -1,6 +1,4 @@
 from typing import List
-
-import numpy as np
 from pyrep.objects.shape import Shape
 from pyrep.objects.dummy import Dummy
 from pyrep.objects.proximity_sensor import ProximitySensor
@@ -32,7 +30,6 @@ class PlaceShapeInShapeSorter(Task):
         self.boundary = SpawnBoundary([Shape('boundary')])
 
     def init_episode(self, index) -> List[str]:
-        index = np.random.randint(0, len(SHAPE_NAMES))
         self.variation_index = index
         shape = SHAPE_NAMES[index]
         self.register_success_conditions(
@@ -56,10 +53,3 @@ class PlaceShapeInShapeSorter(Task):
     def _set_drop(self, _):
         dp = self.drop_points[self.variation_index]
         self.waypoint4.set_pose(dp.get_pose())
-
-    def get_low_dim_state(self) -> np.ndarray:
-        # shapes = [self.waypoint1, self.waypoint4]
-        shapes = [self.shapes[self.variation_index]] + [self.shape_sorter]
-        states = [s.get_pose() for s in shapes]
-        return np.concatenate(states)
-

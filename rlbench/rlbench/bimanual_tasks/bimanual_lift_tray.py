@@ -58,7 +58,7 @@ class BimanualLiftTray(BimanualTask):
             DetectedCondition(self.tray, right_sensor),
             DetectedCondition(self.tray, left_sensor)])
 
-
+ 
 
         return ['Lift the tray']
 
