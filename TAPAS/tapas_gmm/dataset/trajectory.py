@@ -23,8 +23,10 @@ class Trajectory:
         subsample_to_length: int | None,
         file_config,
         traj_config,
+        shorten_cam_names: bool = True,
     ) -> None:
         self.camera_names = camera_names
+        self.shorten_cam_names = shorten_cam_names
 
         self.subsample_by_difference = subsample_by_difference
         self.subsample_to_length = subsample_to_length
@@ -81,7 +83,11 @@ class Trajectory:
         obs_subsampled = downsample_traj_by_idx(self.observations, indeces)
 
         for cam in self.camera_names:
-            attr_map = get_cam_attributes(cam, MaskTypes.GT)
+            attr_map = get_cam_attributes(
+                cam,
+                MaskTypes.GT,
+                shorten_cam_names=self.shorten_cam_names,
+            )
 
             for attr, attr_dir_name in attr_map.items():
                 attr_dir = directory / attr_dir_name

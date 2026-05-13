@@ -48,6 +48,7 @@ class Config:
     # policy_config: Any
 
     pretraining_data: bool = MISSING
+    max_attempts: int = 30
 
     # horizon: int | None = 300  # None
 
@@ -89,12 +90,31 @@ def main(config: Config) -> None:
         # env.set_camera_pose(env.camera_pose)
 
     try:
-        for demo_id in range(config.n_episodes):
+        demo_id = 0
+        attempts = 0
+
+        while demo_id < config.n_episodes:
             # with RestoreActionMode(env), RestoreEnvState(env):
             #     env.set_world_action_mode()
-            traj = env.task_env.get_demos(
-                1, live_demos=True, callable_each_step=step_call
-            )[0]
+            attempts += 1
+            if attempts > config.max_attempts:
+                raise RuntimeError(
+                    f"Only collected {demo_id}/{config.n_episodes} demos "
+                    f"after {config.max_attempts} attempts."
+                )
+
+            try:
+                traj = env.task_env.get_demos(
+                    1, live_demos=True, callable_each_step=step_call
+                )[0]
+            except Exception as exc:
+                logger.warning(
+                    "Demo attempt {}/{} failed: {}",
+                    attempts,
+                    config.max_attempts,
+                    exc,
+                )
+                continue
 
             for i, raw_obs in enumerate(traj):
                 obs = env.process_observation(raw_obs)
@@ -106,6 +126,7 @@ def main(config: Config) -> None:
                 replay_memory.add_observation(obs)
 
             replay_memory.save_current_traj()
+            demo_id += 1
 
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Attempting graceful env shutdown ...")

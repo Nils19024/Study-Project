@@ -502,6 +502,7 @@ class SceneDataset(Dataset):
             self.subsample_to_length,
             self.file_config,
             self.traj_config,
+            self.shorten_cam_names,
         )
 
     def add_observation(self, obs: SceneObservation) -> None:  # type: ignore

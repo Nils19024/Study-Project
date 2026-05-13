@@ -135,6 +135,9 @@ class BimanualDualPushButtons(BimanualTask):
     def variation_count(self) -> int:
         return MAX_VARIATIONS
 
+    def get_low_dim_state(self) -> np.ndarray:
+        return np.array([button.get_pose() for button in self.target_buttons]).flatten()
+
     def cleanup(self) -> None:
         self.buttons_pushed = 0
 

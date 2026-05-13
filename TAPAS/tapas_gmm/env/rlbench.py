@@ -1,4 +1,6 @@
 import os
+import importlib
+import re
 from dataclasses import dataclass
 from functools import wraps
 from typing import Any
@@ -9,15 +11,21 @@ import torch
 from loguru import logger
 from pyrep.const import RenderMode
 from pyrep.errors import ConfigurationPathError, IKError
-from rlbench.action_modes.action_mode import ActionMode, MoveArmThenGripper
+from rlbench.action_modes.action_mode import (
+    ActionMode,
+    BimanualMoveArmThenGripper,
+    MoveArmThenGripper,
+)
 from rlbench.action_modes.arm_action_modes import (
     ArmActionMode,
+    BimanualJointPosition,
     EndEffectorPoseViaIK,
     EndEffectorPoseViaPlanning,
 )
-from rlbench.action_modes.gripper_action_modes import Discrete
+from rlbench.action_modes.gripper_action_modes import BimanualDiscrete, Discrete
 from rlbench.backend.exceptions import InvalidActionError
 from rlbench.backend.observation import Observation as RLBenchObservation
+from rlbench.backend.task import BimanualTask
 from rlbench.demo import Demo
 from rlbench.environment import Environment as RLBenchInternalEnvironment
 from rlbench.observation_config import CameraConfig, ObservationConfig
@@ -48,6 +56,7 @@ from rlbench.tasks import (
     TakeLidOffSaucepan,
     TurnTap,
 )
+from rlbench.bimanual_tasks.bimanual_dual_push_buttons import BimanualDualPushButtons
 
 from tapas_gmm.env import Environment
 from tapas_gmm.env.environment import BaseEnvironment, BaseEnvironmentConfig
@@ -103,6 +112,10 @@ task_switch = {
     "StackBlocks": StackBlocks,
 }
 
+bimanual_task_switch = {
+    "BimanualDualPushButtons": BimanualDualPushButtons,
+}
+
 
 world_pos_action_mode = MoveArmThenGripper(
     arm_action_mode=EndEffectorPoseViaIK(
@@ -126,21 +139,40 @@ class RLBenchEnvironmentConfig(BaseEnvironmentConfig):
     postprocess_actions: bool = True
     background: str | None = None
     model_ids: tuple[str, ...] | None = None
+    bimanual: bool = False
+    robot_setup: str | None = None
 
 
 class RLBenchEnvironment(BaseEnvironment):
     def __init__(self, config: RLBenchEnvironmentConfig, **kwargs):
         super().__init__(config)
 
+        self.task_class = self._get_task_class(config.task)
+        self.is_bimanual = (
+            config.bimanual
+            or config.robot_setup == "dual_panda"
+            or issubclass(self.task_class, BimanualTask)
+        )
+
         self.cameras = config.cameras
 
         assert set(self.cameras).issubset(
-            {"left_shoulder", "right_shoulder", "wrist", "overhead", "front"}
+            {
+                "left_shoulder",
+                "right_shoulder",
+                "wrist",
+                "wrist_right",
+                "wrist_left",
+                "overhead",
+                "front",
+            }
         )
 
         left_shoulder_on = "left_shoulder" in self.cameras
         right_shoulder_on = "right_shoulder" in self.cameras
         wrist_on = "wrist" in self.cameras
+        wrist_right_on = "wrist_right" in self.cameras
+        wrist_left_on = "wrist_left" in self.cameras
         overhead_on = "overhead" in self.cameras
         front_on = "front" in self.cameras
 
@@ -179,6 +211,24 @@ class RLBenchEnvironment(BaseEnvironment):
                 rgb=wrist_on,
                 depth=wrist_on,
                 mask=wrist_on,
+                render_mode=render_mode,
+                depth_in_meters=True,
+                image_size=image_size,
+                point_cloud=False,
+            ),
+            "wrist_right": CameraConfig(
+                rgb=wrist_right_on,
+                depth=wrist_right_on,
+                mask=wrist_right_on,
+                render_mode=render_mode,
+                depth_in_meters=True,
+                image_size=image_size,
+                point_cloud=False,
+            ),
+            "wrist_left": CameraConfig(
+                rgb=wrist_left_on,
+                depth=wrist_left_on,
+                mask=wrist_left_on,
                 render_mode=render_mode,
                 depth_in_meters=True,
                 image_size=image_size,
@@ -238,29 +288,36 @@ class RLBenchEnvironment(BaseEnvironment):
     ) -> None:
         # sphere policy uses custom action mode, ABS_EE_POSE_PLAN_WORLD_FRAME
         # for others: everything like in parent class
-        if config.action_mode is None:
-            config.action_mode = (
-                # instead of TOPPRA  EndEffectorPoseViaIK
-                EndEffectorPoseViaPlanning
-                if self.planning_action_mode
-                else EndEffectorPoseViaIK
+        if self.is_bimanual:
+            action_mode = BimanualMoveArmThenGripper(
+                arm_action_mode=BimanualJointPosition(),
+                gripper_action_mode=BimanualDiscrete(),
+            )
+        else:
+            if config.action_mode is None:
+                config.action_mode = (
+                    # instead of TOPPRA  EndEffectorPoseViaIK
+                    EndEffectorPoseViaPlanning
+                    if self.planning_action_mode
+                    else EndEffectorPoseViaIK
+                )
+            if (
+                config.action_mode is EndEffectorPoseViaIK
+                and not config.postprocess_actions
+            ):
+                logger.warning(
+                    "Using default action mode without action "
+                    "postprocessing. Is that intended?"
+                )
+            action_mode = MoveArmThenGripper(
+                arm_action_mode=config.action_mode(
+                    absolute_mode=self.config.absolute_action_mode,
+                    frame=self.config.action_frame,
+                ),
+                gripper_action_mode=Discrete(),
             )
 
-        if (
-            config.action_mode is EndEffectorPoseViaIK
-            and not config.postprocess_actions
-        ):
-            logger.warning(
-                "Using default action mode without action "
-                "postprocessing. Is that intended?"
-            )
-        action_mode = MoveArmThenGripper(
-            arm_action_mode=config.action_mode(
-                absolute_mode=self.config.absolute_action_mode,
-                frame=self.config.action_frame,
-            ),
-            gripper_action_mode=Discrete(),
-        )
+        robot_setup = config.robot_setup or ("dual_panda" if self.is_bimanual else "panda")
         
         # !!!!!! aufruf der richtigen RL Env !!!!!!!!!!
         self.env = RLBenchInternalEnvironment(
@@ -268,11 +325,32 @@ class RLBenchEnvironment(BaseEnvironment):
             obs_config=obs_config,
             static_positions=config.static,
             headless=config.headless,
+            robot_setup=robot_setup,
         )
 
         self.env.launch()
 
-        self.task_env: TaskEnvironment = self.env.get_task(task_switch[config.task])
+        self.task_env: TaskEnvironment = self.env.get_task(self.task_class)
+
+    @staticmethod
+    def _get_task_class(task_name: str):
+        if task_name in task_switch:
+            return task_switch[task_name]
+        if task_name in bimanual_task_switch:
+            return bimanual_task_switch[task_name]
+
+        module_name = re.sub(r"(?<!^)(?=[A-Z])", "_", task_name).lower()
+        for package in ("rlbench.tasks", "rlbench.bimanual_tasks"):
+            try:
+                module = importlib.import_module(f"{package}.{module_name}")
+            except ModuleNotFoundError as exc:
+                if exc.name != f"{package}.{module_name}":
+                    raise
+                continue
+            if hasattr(module, task_name):
+                return getattr(module, task_name)
+
+        raise KeyError(f"Unknown RLBench task: {task_name}")
 
     def close(self):
         self.env.shutdown()
@@ -294,13 +372,15 @@ class RLBenchEnvironment(BaseEnvironment):
         if hasattr(self.env._scene, "camera_sensors"):
             camera_map = self.env._scene.camera_sensors
         else:
-            camera_map = {
+            camera_map = {k: v for k, v in {
                 "left_shoulder": self.env._scene._cam_over_shoulder_left,
                 "right_shoulder": self.env._scene._cam_over_shoulder_right,
                 "wrist": self.env._scene._cam_wrist,
+                "wrist_right": getattr(self.env._scene, "_cam_wrist_right", None),
+                "wrist_left": getattr(self.env._scene, "_cam_wrist_left", None),
                 "overhead": self.env._scene._cam_overhead,
                 "front": self.env._scene._cam_front,
-            }
+            }.items() if v is not None}
 
         self.camera_map = {k: v for k, v in camera_map.items() if k in self.cameras}
 
@@ -456,6 +536,47 @@ class RLBenchEnvironment(BaseEnvironment):
 
         return np.array(state).flatten()
 
+    @staticmethod
+    def _flat_task_low_dim_state(obs: RLBenchObservation) -> np.ndarray:
+        flat_object_poses = obs.task_low_dim_state
+
+        if isinstance(flat_object_poses, tuple) and len(flat_object_poses) == 1:
+            flat_object_poses = flat_object_poses[0]
+
+        if flat_object_poses is None:
+            return np.array([])
+
+        return np.asarray(flat_object_poses).flatten()
+
+    @staticmethod
+    def _robot_state_to_tensors(
+        robot_obs,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        joint_pos = torch.Tensor(np.asarray(robot_obs.joint_positions).flatten())
+        joint_vel = torch.Tensor(np.asarray(robot_obs.joint_velocities).flatten())
+        gripper_pose = np.asarray(robot_obs.gripper_pose).flatten()
+        ee_pose = torch.Tensor(
+            np.concatenate(
+                [
+                    gripper_pose[:3],
+                    quat_real_last_to_real_first(gripper_pose[3:]),
+                ]
+            )
+        )
+        gripper_open = torch.Tensor([robot_obs.gripper_open])
+
+        return joint_pos, joint_vel, ee_pose, gripper_open
+
+    def _proprioception_to_tensors(
+        self, obs: RLBenchObservation
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        if getattr(obs, "is_bimanual", False):
+            right = self._robot_state_to_tensors(obs.right)
+            left = self._robot_state_to_tensors(obs.left)
+            return tuple(torch.cat(values) for values in zip(right, left))
+
+        return self._robot_state_to_tensors(obs)
+
     def process_observation(self, obs: RLBenchObservation) -> SceneObservation:
         """
         Convert the observation from the environment to a SceneObservation.
@@ -494,33 +615,25 @@ class RLBenchEnvironment(BaseEnvironment):
             {"_order": CameraOrder._create(self.cameras)} | camera_obs
         )
 
-        joint_pos = torch.Tensor(obs.joint_positions)
-        joint_vel = torch.Tensor(obs.joint_velocities)
-
-        ee_pose = torch.Tensor(
-            np.concatenate(
-                [
-                    obs.gripper_pose[:3],
-                    quat_real_last_to_real_first(obs.gripper_pose[3:]),
-                ]
-            )
-        )
+        joint_pos, joint_vel, ee_pose, gripper_open = self._proprioception_to_tensors(obs)
         logger.info(f"EE Pose {ee_pose}")
-        gripper_open = torch.Tensor([obs.gripper_open])
 
-        flat_object_poses = obs.task_low_dim_state
+        flat_object_poses = self._flat_task_low_dim_state(obs)
 
         n_objs = int(len(flat_object_poses) // 7)  # poses are 7 dim and stacked
 
-        if len(flat_object_poses) % 7 != 0:
+        if len(flat_object_poses) == 0 or len(flat_object_poses) % 7 != 0:
             logger.info("Can't parse low dim state, using fallback method.")
             flat_object_poses = self._get_obj_poses()
             n_objs = int(len(flat_object_poses) // 7)
 
-        object_poses = tuple(
-            np.concatenate((pose[:3], quat_real_last_to_real_first(pose[3:])))
-            for pose in np.split(flat_object_poses, n_objs)
-        )
+        if n_objs == 0:
+            object_poses = tuple()
+        else:
+            object_poses = tuple(
+                np.concatenate((pose[:3], quat_real_last_to_real_first(pose[3:])))
+                for pose in np.split(flat_object_poses, n_objs)
+            )
 
         object_poses = dict_to_tensordict(
             {f"obj{i:03d}": torch.Tensor(pose) for i, pose in enumerate(object_poses)}
@@ -547,9 +660,7 @@ class RLBenchEnvironment(BaseEnvironment):
         return obs.perception_data[attr_name]
 
     @staticmethod
-    def _get_action(
-        current_obs: RLBenchObservation, next_obs: RLBenchObservation
-    ) -> np.ndarray:
+    def _get_single_arm_action(current_obs, next_obs) -> np.ndarray:
         gripper_action = np.array(
             [2 * next_obs.gripper_open - 1]  # map from [0, 1] to [-1, 1]
         )
@@ -563,8 +674,6 @@ class RLBenchEnvironment(BaseEnvironment):
         next_A = quaternion_to_matrix(next_q)
         next_hom = homogenous_transform_from_rot_shift(next_A, next_b)
 
-        # Transform from world into EE frame. In EE frame target pose and delta pose
-        # are the same thing.
         world2ee = invert_homogenous_transform(
             homogenous_transform_from_rot_shift(curr_A, curr_b)
         )
@@ -574,6 +683,24 @@ class RLBenchEnvironment(BaseEnvironment):
         pos_delta = pred_local[:3, 3]
 
         return np.concatenate([pos_delta, rot_delta, gripper_action])
+
+    @staticmethod
+    def _get_action(
+        current_obs: RLBenchObservation, next_obs: RLBenchObservation
+    ) -> np.ndarray:
+        if getattr(current_obs, "is_bimanual", False):
+            return np.concatenate(
+                [
+                    RLBenchEnvironment._get_single_arm_action(
+                        current_obs.right, next_obs.right
+                    ),
+                    RLBenchEnvironment._get_single_arm_action(
+                        current_obs.left, next_obs.left
+                    ),
+                ]
+            )
+
+        return RLBenchEnvironment._get_single_arm_action(current_obs, next_obs)
 
     def postprocess_quat_action(self, quaternion: np.ndarray) -> np.ndarray:
         return quat_real_first_to_real_last(quaternion)
