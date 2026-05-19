@@ -1,0 +1,42 @@
+# Python 3.10 and CoppeliaSim is available and exported!!!
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+numpy
+cffi
+Pillow
+pyquaternion
+html-testRunner
+setuptools
+natsort
+matplotlib
+wandb
+pynput
+opencv-python
+opencv-contrib-python
+scikit-image
+numba
+tqdm
+loguru
+pre-commit
+jsonpickle
+scikit-learn
+nvitop
+timm
+lovely_numpy
+lovely_tensors
+ipympl
+omegaconf
+dill
+pandas
+mplib
+click-prompt
+rich-click
+
+tensordict==0.2.1
+torch==2.1.0+cpu
+
+# Local project packages
+-e ./riepybdlib
+-e ./rlbench
+-e ./TAPAS

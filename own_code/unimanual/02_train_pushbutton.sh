@@ -2,4 +2,4 @@
 source "$(dirname "$0")/env.sh"
 cd "$TAPAS_ROOT"
 
-python ../own_code/train_pushbutton_gmm.py
+python "$OWN_CODE_ROOT/unimanual/train_pushbutton_gmm.py"

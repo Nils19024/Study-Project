@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Any
 
-import mani_skill2
 import numpy as np
 import torch
 from loguru import logger
@@ -616,8 +615,6 @@ class RLBenchEnvironment(BaseEnvironment):
         )
 
         joint_pos, joint_vel, ee_pose, gripper_open = self._proprioception_to_tensors(obs)
-        logger.info(f"EE Pose {ee_pose}")
-
         flat_object_poses = self._flat_task_low_dim_state(obs)
 
         n_objs = int(len(flat_object_poses) // 7)  # poses are 7 dim and stacked

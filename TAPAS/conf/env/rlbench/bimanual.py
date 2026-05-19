@@ -10,7 +10,7 @@ rlbench_env_config = RLBenchEnvironmentConfig(
     },
     image_size=(256, 256),
     static=False,
-    headless=False,
+    headless=True,
     scale_action=False,
     delay_gripper=False,
     gripper_plot=False,

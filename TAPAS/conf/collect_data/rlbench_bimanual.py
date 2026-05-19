@@ -1,11 +1,13 @@
 from conf._machine import data_naming_config
+from pathlib import Path
 from conf.dataset.scene.rlbench_bimanual import scene_dataset_config
 from conf.env.rlbench.bimanual import rlbench_env_config
 from tapas_gmm.collect_data_rlbench import Config
 from tapas_gmm.env import Environment
 
-data_naming_config.data_root = (
-    "/home/nils/Documents/Study Project/Code/own_code/bimanual/tapas_observations"
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+data_naming_config.data_root = str(
+    PROJECT_ROOT / "own_code" / "outputs" / "bimanual" / "tapas_observations"
 )
 
 config = Config(

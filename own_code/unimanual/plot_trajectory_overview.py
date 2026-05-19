@@ -13,9 +13,10 @@ import torch
 from PIL import Image
 
 
-CODE_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OUTPUTS_ROOT = PROJECT_ROOT / "own_code" / "outputs"
 DEFAULT_TRAJ = (
-    CODE_ROOT
+    PROJECT_ROOT
     / "TAPAS/data/PushButton/demos/trajectories/2026_05_04-09_08_15"
 )
 
@@ -62,7 +63,8 @@ def main() -> None:
     args = parser.parse_args()
 
     traj = args.traj.resolve()
-    out = args.out or CODE_ROOT / "own_code" / f"{traj.name}_overview.png"
+    out = args.out or OUTPUTS_ROOT / "unimanual" / f"{traj.name}_overview.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
 
     metadata = json.loads((traj / "metadata.json").read_text())
     action = load_tensor_series(traj / "action")

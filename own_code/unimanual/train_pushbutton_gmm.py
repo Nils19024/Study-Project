@@ -11,16 +11,20 @@ from tapas_gmm.policy.models.tpgmm import (
 )
 from tapas_gmm.utils.misc import DataNamingConfig, load_scene_data
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OUTPUTS_ROOT = PROJECT_ROOT / "own_code" / "outputs"
+
 
 def main() -> None:
     task = "PushButton"
-    out_path = Path("../own_code") / "pushbutton_gmm_policy.pt"
+    out_path = OUTPUTS_ROOT / "unimanual" / "pushbutton_gmm_policy.pt"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
     scene_data = load_scene_data(
         DataNamingConfig(
             feedback_type="demos",
             task=task,
-            data_root="data",
+            data_root=str(OUTPUTS_ROOT / "unimanual" / "tapas_observations"),
         )
     )
     observations = scene_data.get_demos()

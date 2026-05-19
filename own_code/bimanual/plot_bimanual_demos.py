@@ -1,4 +1,4 @@
-#!/home/nils/tapas310/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import os
@@ -12,8 +12,9 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+OUTPUTS_ROOT = ROOT / "own_code" / "outputs"
 COPPELIA = ROOT / "sim" / "CoppeliaSim_Edu_V4_1_0_Ubuntu20_04"
-DEFAULT_DATA_ROOT = HERE / "bimanual_dual_push_buttons_demos"
+DEFAULT_DATA_ROOT = OUTPUTS_ROOT / "bimanual" / "bimanual_dual_push_buttons_demos"
 DEFAULT_TASK = "bimanual_dual_push_buttons"
 
 os.environ["COPPELIASIM_ROOT"] = str(COPPELIA)
