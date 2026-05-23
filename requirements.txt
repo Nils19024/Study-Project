@@ -7,7 +7,7 @@ cffi
 Pillow
 pyquaternion
 html-testRunner
-setuptools
+setuptools<81
 natsort
 matplotlib
 wandb

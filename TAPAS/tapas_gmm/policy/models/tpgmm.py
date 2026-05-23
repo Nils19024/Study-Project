@@ -325,16 +325,17 @@ class TPGMM:
         if not self.config.action_with_magnitude and not self.config.add_gripper_action:
             return self.config.reg_diag
         else:
-            n_gripper_dims = int(self.config.add_gripper_action)
+            n_gripper_dims = self._gripper_action_dims
             n_mag_dims = int(self.config.action_with_magnitude) * (
                 1 + int(1 - self.config.position_only)
             )
-            n_pos_dims = 3 if self.config.position_only else 6
+            n_pos_dims = (3 if self.config.position_only else 6) * self._pose_count
             vel_man_dim = 2 if self.config.action_as_orientation else 3
             n_vel_dims = (
                 int(self.config.add_action_component)
                 * vel_man_dim
                 * (2 - int(self.config.position_only))
+                * self._pose_count
             )
 
             assert self._sigma_dim == self.n_frames * (
@@ -372,11 +373,11 @@ class TPGMM:
         if not self.config.action_with_magnitude and not self.config.add_gripper_action:
             return self.config.reg_diag
         else:
-            n_gripper_dims = int(self.config.add_gripper_action)
+            n_gripper_dims = self._gripper_action_dims
             n_mag_dims = int(self.config.action_with_magnitude) * (
                 1 + int(1 - self.config.position_only)
             )
-            n_pos_dims = 3 if self.config.position_only else 6
+            n_pos_dims = (3 if self.config.position_only else 6) * self._pose_count
             n_vel_dims = (
                 0
                 if not self.config.add_action_component
@@ -385,6 +386,7 @@ class TPGMM:
                     if self.config.position_only
                     else 4 if self.action_as_orientation else 6
                 )
+                * self._pose_count
             )
 
             components = []
@@ -392,7 +394,7 @@ class TPGMM:
             if self.add_time_component:
                 components.append(np.ones(1) * self.config.reg_diag)
 
-            components = components.append(np.ones(n_pos_dims) * self.config.reg_diag)
+            components.append(np.ones(n_pos_dims) * self.config.reg_diag)
 
             if self.config.add_action_component:
                 components.append(np.ones(n_vel_dims) * self.config.reg_diag_vel)
@@ -412,16 +414,17 @@ class TPGMM:
         if not self.config.action_with_magnitude and not self.config.add_gripper_action:
             return self.config.reg_em_finish_diag
         else:
-            n_gripper_dims = int(self.config.add_gripper_action)
+            n_gripper_dims = self._gripper_action_dims
             n_mag_dims = int(self.config.action_with_magnitude) * (
                 1 + int(1 - self.config.position_only)
             )
-            n_pos_dims = 3 if self.config.position_only else 6
+            n_pos_dims = (3 if self.config.position_only else 6) * self._pose_count
             vel_man_dim = 2 if self.config.action_as_orientation else 3
             n_vel_dims = (
                 int(self.config.add_action_component)
                 * vel_man_dim
                 * (2 - int(self.config.position_only))
+                * self._pose_count
             )
 
             assert self._sigma_dim == self.n_frames * (
@@ -548,9 +551,13 @@ class TPGMM:
         """
         The manifold of a single frame.
         """
-        m_state = (
+        if self._pose_count != 1 and not self.config.position_only:
+            raise NotImplementedError("Multi-EE TPGMMs are position-only for now.")
+
+        m_state_single = (
             Manifold_R3 if self.config.position_only else Manifold_R3 * Manifold_Quat
         )
+        m_state = multiply_iterable([m_state_single] * self._pose_count)
         m_action = (
             Manifold_S2
             if self.config.action_as_orientation and self.config.position_only
@@ -604,7 +611,7 @@ class TPGMM:
         Manifold of the gripper action. None if not configured.
         """
         if self.config.add_gripper_action:
-            return Manifold_R1
+            return multiply_iterable([Manifold_R1] * self._gripper_action_dims)
         else:
             return None
 
@@ -781,9 +788,20 @@ class TPGMM:
             else 0
         )
         n_global_dims *= 2 if not self.config.position_only else 1
-        n_global_dims += 1 if self.config.add_gripper_action else 0
+        if self.config.add_gripper_action:
+            n_global_dims += self._gripper_action_dims
 
         return n_global_dims
+
+    @property
+    def _pose_count(self) -> int:
+        return getattr(self._demos, "per_frame_position_count", 1)
+
+    @property
+    def _gripper_action_dims(self) -> int:
+        if not self.config.add_gripper_action:
+            return 0
+        return getattr(self._demos, "gripper_action_dims", 1)
 
     @cached_property
     def _global_action_full_model_dim_idcs(self) -> tuple[int, ...]:
@@ -2709,6 +2727,11 @@ class AutoTPGMM(TPGMM):
             config = dataclasses.replace(config, **overwrites)
         return TPGMM(config)
 
+    def _partial_frame_view(self, demos: Demos, frame_indices: list[int]) -> Demos:
+        if hasattr(demos, "partial_frame_view"):
+            return demos.partial_frame_view(frame_indices)
+        return PartialFrameViewDemos(demos, frame_indices)
+
     def _setup_data(self, demos: Demos) -> None:
         if self._demos is None:
             self._demos = demos
@@ -2929,7 +2952,7 @@ class AutoTPGMM(TPGMM):
                     min_n_components=min_n_components,
                 )
             )
-            frame_data = PartialFrameViewDemos(segment, list(segment_frame_idcs))
+            frame_data = self._partial_frame_view(segment, list(segment_frame_idcs))
 
             segment_frame_views.append(frame_data)
             segment_gmms.append(segment_gmm)
@@ -3052,7 +3075,7 @@ class AutoTPGMM(TPGMM):
                         drop_action_component=self.config.frame_selection.pose_only,
                     )
                 )
-                frame_data = PartialFrameViewDemos(demos, [i])
+                frame_data = self._partial_frame_view(demos, [i])
 
                 lik, avg_loglik = frame_gmm.fit_trajectories(
                     frame_data,
@@ -3354,7 +3377,7 @@ class AutoTPGMM(TPGMM):
         joint_models = []
 
         for frame_idcs, segment_gmm in zip(self.segment_frames, self.segment_gmms):
-            segment_frame_view = PartialFrameViewDemos(demos, list(frame_idcs))
+            segment_frame_view = self._partial_frame_view(demos, list(frame_idcs))
 
             world_data, frame_trans, frame_quats = segment_gmm.get_gmr_data(
                 use_ss=use_ss,
@@ -3454,7 +3477,7 @@ class AutoTPGMM(TPGMM):
         joint_models = []
 
         for frame_idcs, segment_gmm in zip(self.segment_frames, self.segment_gmms):
-            segment_frame_view = PartialFrameViewDemos(demos, list(frame_idcs))
+            segment_frame_view = self._partial_frame_view(demos, list(frame_idcs))
 
             world_data, frame_trans, frame_quats = segment_gmm.get_gmr_data(
                 use_ss=use_ss,
