@@ -262,7 +262,6 @@ class RLBenchEnvironment(BaseEnvironment):
             gripper_action_mode=Discrete(),
         )
         
-        # !!!!!! aufruf der richtigen RL Env !!!!!!!!!!
         self.env = RLBenchInternalEnvironment(
             action_mode=action_mode,
             obs_config=obs_config,
@@ -494,19 +493,48 @@ class RLBenchEnvironment(BaseEnvironment):
             {"_order": CameraOrder._create(self.cameras)} | camera_obs
         )
 
-        joint_pos = torch.Tensor(obs.joint_positions)
-        joint_vel = torch.Tensor(obs.joint_velocities)
-
-        ee_pose = torch.Tensor(
-            np.concatenate(
-                [
-                    obs.gripper_pose[:3],
-                    quat_real_last_to_real_first(obs.gripper_pose[3:]),
-                ]
+        if obs.is_bimanual:
+            joint_pos = torch.Tensor(
+                np.concatenate([
+                    obs.left.joint_positions,
+                    obs.right.joint_positions,
+                ])
             )
-        )
-        logger.info(f"EE Pose {ee_pose}")
-        gripper_open = torch.Tensor([obs.gripper_open])
+
+            joint_vel = torch.Tensor(
+                np.concatenate([
+                    obs.left.joint_velocities,
+                    obs.right.joint_velocities,
+                ])
+            )
+
+            ee_pose = torch.Tensor(
+                np.concatenate([
+                    obs.left.gripper_pose[:3],
+                    quat_real_last_to_real_first(obs.left.gripper_pose[3:]),
+
+                    obs.right.gripper_pose[:3],
+                    quat_real_last_to_real_first(obs.right.gripper_pose[3:]),
+                ])
+            )
+
+            gripper_open = torch.Tensor([
+                obs.left.gripper_open,
+                obs.right.gripper_open,
+            ])
+        else:
+            joint_pos = torch.Tensor(obs.joint_positions)
+            joint_vel = torch.Tensor(obs.joint_velocities)
+
+            ee_pose = torch.Tensor(
+                np.concatenate(
+                    [
+                        obs.gripper_pose[:3],
+                        quat_real_last_to_real_first(obs.gripper_pose[3:]),
+                    ]
+                )
+            )
+            gripper_open = torch.Tensor([obs.gripper_open])
 
         flat_object_poses = obs.task_low_dim_state
 

@@ -51,8 +51,6 @@ def print_permutations(color_permutations):
 
 class BimanualDualPushButtons(BimanualTask):
 
-
-
     def init_task(self) -> None:
         self.buttons_pushed = 0
         self.color_variation_index = 0
@@ -149,3 +147,6 @@ class BimanualDualPushButtons(BimanualTask):
             print('buttons_pushed:', self.buttons_pushed, 'buttons_to_push:',
                   self.buttons_to_push)
             raise RuntimeError('Should not be here.')
+    
+    def get_low_dim_state(self) -> np.ndarray:
+        return np.array([button.get_pose() for button in self.target_buttons]).flatten()
