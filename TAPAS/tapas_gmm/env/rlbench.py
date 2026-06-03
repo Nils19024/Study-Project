@@ -578,30 +578,39 @@ class RLBenchEnvironment(BaseEnvironment):
     def _get_action(
         current_obs: RLBenchObservation, next_obs: RLBenchObservation
     ) -> np.ndarray:
-        gripper_action = np.array(
-            [2 * next_obs.gripper_open - 1]  # map from [0, 1] to [-1, 1]
-        )
+        def get_arm_action(current_obs, next_obs):
+            gripper_action = np.array(
+                [2 * next_obs.gripper_open - 1]  # map from [0, 1] to [-1, 1]
+            )
 
-        curr_b = current_obs.gripper_pose[:3]
-        curr_q = quat_real_last_to_real_first(current_obs.gripper_pose[3:])
-        curr_A = quaternion_to_matrix(curr_q)
+            curr_b = current_obs.gripper_pose[:3]
+            curr_q = quat_real_last_to_real_first(current_obs.gripper_pose[3:])
+            curr_A = quaternion_to_matrix(curr_q)
 
-        next_b = next_obs.gripper_pose[:3]
-        next_q = quat_real_last_to_real_first(next_obs.gripper_pose[3:])
-        next_A = quaternion_to_matrix(next_q)
-        next_hom = homogenous_transform_from_rot_shift(next_A, next_b)
+            next_b = next_obs.gripper_pose[:3]
+            next_q = quat_real_last_to_real_first(next_obs.gripper_pose[3:])
+            next_A = quaternion_to_matrix(next_q)
+            next_hom = homogenous_transform_from_rot_shift(next_A, next_b)
 
-        # Transform from world into EE frame. In EE frame target pose and delta pose
-        # are the same thing.
-        world2ee = invert_homogenous_transform(
-            homogenous_transform_from_rot_shift(curr_A, curr_b)
-        )
-        rot_delta = quaternion_to_axis_angle(quaternion_pose_diff(curr_q, next_q))
+            # Transform from world into EE frame. In EE frame target pose and delta pose
+            # are the same thing.
+            world2ee = invert_homogenous_transform(
+                homogenous_transform_from_rot_shift(curr_A, curr_b)
+            )
+            rot_delta = quaternion_to_axis_angle(quaternion_pose_diff(curr_q, next_q))
 
-        pred_local = world2ee @ next_hom
-        pos_delta = pred_local[:3, 3]
+            pred_local = world2ee @ next_hom
+            pos_delta = pred_local[:3, 3]
 
-        return np.concatenate([pos_delta, rot_delta, gripper_action])
+            return np.concatenate([pos_delta, rot_delta, gripper_action])
+        
+        if current_obs.is_bimanual:
+            left_action = get_arm_action(current_obs.left, next_obs.left)
+            right_action = get_arm_action(current_obs.right, next_obs.right)
+
+            return np.concatenate([left_action, right_action])
+        else:
+            return get_arm_action(current_obs, next_obs)
 
     def postprocess_quat_action(self, quaternion: np.ndarray) -> np.ndarray:
         return quat_real_first_to_real_last(quaternion)
