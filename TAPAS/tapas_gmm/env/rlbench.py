@@ -361,21 +361,57 @@ class RLBenchEnvironment(BaseEnvironment):
         RuntimeError
             If raised by the environment.
         """
-        prediction_is_quat = action.shape[0] == 8
+        if action.shape[0] == 14:
+            left_action = action[:7]
+            right_action = action[7:]
 
-        if postprocess:
-            action_delayed = self.postprocess_action(
-                action,
-                scale_action=scale_action,
-                delay_gripper=delay_gripper,
-                prediction_is_quat=prediction_is_quat,
-            )
+            if postprocess:
+                left_action = self.postprocess_action(
+                    left_action,
+                    scale_action=scale_action,
+                    delay_gripper=delay_gripper,
+                    prediction_is_quat=False,
+                )
+
+                right_action = self.postprocess_action(
+                    right_action,
+                    scale_action=scale_action,
+                    delay_gripper=delay_gripper,
+                    prediction_is_quat=False,
+                )
+
+            action_delayed = np.concatenate([
+                right_action[:7],
+                [right_action[7]],
+                [0.0],
+
+                left_action[:7],
+                [left_action[7]],
+                [0.0],
+            ])
+
         else:
-            action_delayed = action
+            prediction_is_quat = action.shape[0] == 8
+
+            if postprocess:
+                action_delayed = self.postprocess_action(
+                    action,
+                    scale_action=scale_action,
+                    delay_gripper=delay_gripper,
+                    prediction_is_quat=prediction_is_quat,
+                )
+            else:
+                action_delayed = action
 
         # NOTE: Quaternion in RLBench is real-last.
-        gripper = 0.0 if np.isnan(action_delayed[-1]) else action_delayed[-1]
-        zero_action = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, gripper]
+        if action_delayed.shape[0] == 18:
+            right_gripper = 0.0 if np.isnan(action_delayed[7]) else action_delayed[7]
+            left_gripper = 0.0 if np.isnan(action_delayed[16]) else action_delayed[16]
+            zero_action = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, right_gripper, 0.0,
+                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, left_gripper, 0.0]
+        else:
+            gripper = 0.0 if np.isnan(action_delayed[-1]) else action_delayed[-1]
+            zero_action = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, gripper]
 
         if np.isnan(action_delayed).any():
             logger.warning("NaN action, skipping")
