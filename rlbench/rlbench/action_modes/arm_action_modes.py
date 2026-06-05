@@ -268,9 +268,9 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
         if frame not in ['world', 'end effector']:
             raise ValueError("Expected frame to one of: 'world, 'end effector'")
 
-    def _quick_boundary_check(self, scene: Scene, action: np.ndarray):
+    def _quick_boundary_check(self, scene: Scene, action: np.ndarray, arm: Arm):
         pos_to_check = action[:3]
-        relative_to = None if self._frame == 'world' else scene.robot.arm.get_tip()
+        relative_to = None if self._frame == 'world' else arm.get_tip()
         if relative_to is not None:
             scene.target_workspace_check.set_position(pos_to_check, relative_to)
             pos_to_check = scene.target_workspace_check.get_position()
@@ -310,7 +310,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
         if not self._absolute_mode and self._frame != 'end effector':
             action = calculate_delta_pose(scene.robot, action)
         relative_to = None if self._frame == 'world' else arm.get_tip()
-        self._quick_boundary_check(scene, action)
+        self._quick_boundary_check(scene, action, arm)
 
         colliding_shapes = []
         if not ignore_collisions:
