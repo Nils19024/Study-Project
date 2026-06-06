@@ -9,13 +9,13 @@ import torch
 from loguru import logger
 from pyrep.const import RenderMode
 from pyrep.errors import ConfigurationPathError, IKError
-from rlbench.action_modes.action_mode import ActionMode, MoveArmThenGripper
+from rlbench.action_modes.action_mode import ActionMode, MoveArmThenGripper, BimanualMoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import (
     ArmActionMode,
     EndEffectorPoseViaIK,
     EndEffectorPoseViaPlanning,
 )
-from rlbench.action_modes.gripper_action_modes import Discrete
+from rlbench.action_modes.gripper_action_modes import Discrete, BimanualDiscrete
 from rlbench.backend.exceptions import InvalidActionError
 from rlbench.backend.observation import Observation as RLBenchObservation
 from rlbench.demo import Demo
@@ -47,6 +47,10 @@ from rlbench.tasks import (
     SweepToDustpan,
     TakeLidOffSaucepan,
     TurnTap,
+)
+
+from rlbench.bimanual_tasks.bimanual_dual_push_buttons import (
+    BimanualDualPushButtons
 )
 
 from tapas_gmm.env import Environment
@@ -101,6 +105,8 @@ task_switch = {
     "PlaceCups": PlaceCups,
     "PutItemInDrawer": PutItemInDrawer,
     "StackBlocks": StackBlocks,
+
+    "BimanualDualPushButtons": BimanualDualPushButtons,
 }
 
 
@@ -126,6 +132,8 @@ class RLBenchEnvironmentConfig(BaseEnvironmentConfig):
     postprocess_actions: bool = True
     background: str | None = None
     model_ids: tuple[str, ...] | None = None
+
+    robot_setup: str = "panda"
 
 
 class RLBenchEnvironment(BaseEnvironment):
@@ -254,19 +262,30 @@ class RLBenchEnvironment(BaseEnvironment):
                 "Using default action mode without action "
                 "postprocessing. Is that intended?"
             )
-        action_mode = MoveArmThenGripper(
-            arm_action_mode=config.action_mode(
-                absolute_mode=self.config.absolute_action_mode,
-                frame=self.config.action_frame,
-            ),
-            gripper_action_mode=Discrete(),
-        )
+        
+        if config.robot_setup == "dual_panda":
+            action_mode = BimanualMoveArmThenGripper(
+                arm_action_mode=config.action_mode(
+                    absolute_mode=self.config.absolute_action_mode,
+                    frame=self.config.action_frame,
+                ),
+                gripper_action_mode=BimanualDiscrete(),
+            )
+        else:
+            action_mode = MoveArmThenGripper(
+                arm_action_mode=config.action_mode(
+                    absolute_mode=self.config.absolute_action_mode,
+                    frame=self.config.action_frame,
+                ),
+                gripper_action_mode=Discrete(),
+            )
         
         self.env = RLBenchInternalEnvironment(
             action_mode=action_mode,
             obs_config=obs_config,
             static_positions=config.static,
             headless=config.headless,
+            robot_setup=config.robot_setup,
         )
 
         self.env.launch()
