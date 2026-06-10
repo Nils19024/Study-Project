@@ -591,7 +591,10 @@ class RLBenchEnvironment(BaseEnvironment):
             )
             gripper_open = torch.Tensor([obs.gripper_open])
 
-        flat_object_poses = obs.task_low_dim_state
+        if obs.is_bimanual:
+            flat_object_poses = obs.task_low_dim_state[0]
+        else:
+            flat_object_poses = obs.task_low_dim_state
 
         n_objs = int(len(flat_object_poses) // 7)  # poses are 7 dim and stacked
 
