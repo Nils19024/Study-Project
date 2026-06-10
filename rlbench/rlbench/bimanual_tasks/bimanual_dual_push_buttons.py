@@ -148,5 +148,5 @@ class BimanualDualPushButtons(BimanualTask):
                   self.buttons_to_push)
             raise RuntimeError('Should not be here.')
     
-    def get_low_dim_state(self) -> np.ndarray:
+    def get_low_dim_state(self):
         return np.array([button.get_pose() for button in self.target_buttons]).flatten()
