@@ -258,6 +258,9 @@ class Demos:
         """
         assert not (enforce_z_down and enforce_z_up)
 
+        ee_pose_dim = trajectories[0].ee_pose.shape[-1]
+        self.is_bimanual = ee_pose_dim == 14
+
         self.meta_data = {} if meta_data is None else meta_data
         self.meta_data["add_init_ee_pose_as_frame"] = add_init_ee_pose_as_frame
         self.meta_data["add_world_frame"] = add_world_frame
@@ -278,6 +281,11 @@ class Demos:
         # we remove it later. However, it needs the same transformations, so
         # we add it here temporarily.
         ee_poses = tuple(o.ee_pose for o in trajectories)
+
+        if self.is_bimanual:
+            left_ee_poses = tuple(o[:, :7] for o in ee_poses)
+            right_ee_poses = tuple(o[:, 7:] for o in ee_poses)
+
         object_poses = tuple(
             (
                 tp_from_keypoints(o.kp.squeeze(1), kp_indeces)
@@ -287,150 +295,273 @@ class Demos:
             for o in trajectories
         )
         n_obj_frames = len(object_poses[0])
-        frame_poses = tuple(
-            torch.stack([e] + o) for e, o in zip(ee_poses, object_poses)
-        )
+
+        if self.is_bimanual:
+            frame_poses_left = tuple(
+                torch.stack([e] + o) for e, o in zip(left_ee_poses, object_poses)
+            )
+
+            frame_poses_right = tuple(
+                torch.stack([e] + o) for e, o in zip(right_ee_poses, object_poses)
+            )
+        else:
+            frame_poses = tuple(
+                torch.stack([e] + o) for e, o in zip(ee_poses, object_poses)
+            )
 
         if modulo_object_z_rotation:
-            frame_poses = modulo_rotation_angle(
-                frame_poses, quarter_rot_angle, 2, skip_first=True
-            )
+            if self.is_bimanual:
+                frame_poses_left = modulo_rotation_angle(
+                    frame_poses_left, quarter_rot_angle, 2, skip_first=True
+                )
+                frame_poses_right = modulo_rotation_angle(
+                    frame_poses_right, quarter_rot_angle, 2, skip_first=True
+                )
+            else:
+                frame_poses = modulo_rotation_angle(
+                    frame_poses, quarter_rot_angle, 2, skip_first=True
+                )
+        if self.is_bimanual:
+            self.n_trajs = len(frame_poses_left)
+        else:
+            self.n_trajs = len(frame_poses)
 
-        self.n_trajs = len(frame_poses)
-
-        self.world2frames = []
-        self.world2frames_velocities = []
-        self.frames2world = []
-        self.frames2world_velocities = []
-        self.ee_poses = []
         self.ee_poses_raw = tuple(o.ee_pose for o in trajectories)
-        self.ee_quats = tuple(o[..., 3:] for o in self.ee_poses_raw)
+
+        if self.is_bimanual:
+            self.left_ee_poses_raw = tuple(o[:, :7] for o in self.ee_poses_raw)
+            self.right_ee_poses_raw = tuple(o[:, 7:] for o in self.ee_poses_raw)
+
+            self.left_ee_quats = tuple(o[:, 3:] for o in self.left_ee_poses_raw)
+            self.right_ee_quats = tuple(o[:, 3:] for o in self.right_ee_poses_raw)
+        else:
+            self.ee_quats = tuple(o[..., 3:] for o in self.ee_poses_raw)
 
         if make_quats_continuous:
-            self.ee_quats = tuple(
-                ensure_quaternion_continuity(e) for e in self.ee_quats
-            )
+            if self.is_bimanual:
+                self.left_ee_quats = tuple(
+                    ensure_quaternion_continuity(e) for e in self.left_ee_quats
+                )
+                self.right_ee_quats = tuple(
+                    ensure_quaternion_continuity(e) for e in self.right_ee_quats
+                )
+            else:
+                self.ee_quats = tuple(
+                    ensure_quaternion_continuity(e) for e in self.ee_quats
+                )
 
         # import matplotlib.pyplot as plt
         # for dim in range(4):
         #     plt.plot(self.ee_quats[0][:, dim])
         # plt.show()
+        if self.is_bimanual:
+            frame_quats_left = []
+            frame_quats_right = []
 
-        frame_quats = []
-        if add_world_frame:
-            frame_quats.append(
-                tuple(identity_quaternions(o[0:1, :, 0].shape) for o in frame_poses)
-            )
-        if add_init_ee_pose_as_frame:
-            frame_quats.append(
-                tuple(
-                    o[0].unsqueeze(0).unsqueeze(0).repeat(1, o.shape[0], 1)
-                    for o in self.ee_quats
+            if add_world_frame:
+                frame_quats_left.append(
+                    tuple(identity_quaternions(o[0:1, :, 0].shape) for o in frame_poses_left)
                 )
-            )
+                frame_quats_right.append(
+                    tuple(identity_quaternions(o[0:1, :, 0].shape) for o in frame_poses_right)
+                )
 
-        frame_quats.append(tuple(o[1:, :, 3:] for o in frame_poses))
-        self.frame_quats = tuple(torch.cat(o) for o in zip(*frame_quats))
+            if add_init_ee_pose_as_frame:
+                frame_quats_left.append(
+                    tuple(
+                        o[0].unsqueeze(0).unsqueeze(0).repeat(1, o.shape[0], 1)
+                        for o in self.left_ee_quats
+                    )
+                )
+                frame_quats_right.append(
+                    tuple(
+                        o[0].unsqueeze(0).unsqueeze(0).repeat(1, o.shape[0], 1)
+                        for o in self.right_ee_quats
+                    )
+                )
 
-        self.frame_quats = configurable_rotate_frames(
-            self.frame_quats,
-            enforce_z_down,
-            enforce_z_up,
-            add_init_ee_pose_as_frame,
-            add_world_frame,
-        )
+            frame_quats_left.append(tuple(o[1:, :, 3:] for o in frame_poses_left))
+            frame_quats_right.append(tuple(o[1:, :, 3:] for o in frame_poses_right))
 
-        # Convert the reference frames and EE pose into homogeneous transforms.
-        for i in range(self.n_trajs):
-            frame_poses_i = frame_poses[i]
-            n_frames, n_steps, len_quat = frame_poses_i.shape
-            assert len_quat == 7
+            self.frame_quats_left = tuple(torch.cat(o) for o in zip(*frame_quats_left))
+            self.frame_quats_right = tuple(torch.cat(o) for o in zip(*frame_quats_right))
+        else:
+            frame_quats = []
+            if add_world_frame:
+                frame_quats.append(
+                    tuple(identity_quaternions(o[0:1, :, 0].shape) for o in frame_poses)
+                )
+            if add_init_ee_pose_as_frame:
+                frame_quats.append(
+                    tuple(
+                        o[0].unsqueeze(0).unsqueeze(0).repeat(1, o.shape[0], 1)
+                        for o in self.ee_quats
+                    )
+                )
 
-            frame_poses_i_b = frame_poses_i[:, :, :3]  # position
-            frame_poses_i_q = frame_poses_i[:, :, 3:]  # quaternion
+            frame_quats.append(tuple(o[1:, :, 3:] for o in frame_poses))
+            self.frame_quats = tuple(torch.cat(o) for o in zip(*frame_quats))
 
-            # First frame in frame_poses_i_q is the EE pose, see line 198.
-            # So, need to skip it and rotate the rest. Can achieve this by
-            # setting with_init_ee_pose to True and with_world_frame to False.
-            frame_poses_i_q = configurable_rotate_frames(
-                frame_poses_i_q,
+        if self.is_bimanual:
+            self.frame_quats_left = configurable_rotate_frames(
+                self.frame_quats_left,
                 enforce_z_down,
                 enforce_z_up,
-                with_init_ee_pose=True,
-                with_world_frame=False,
+                add_init_ee_pose_as_frame,
+                add_world_frame,
             )
 
-            assert quaternion_is_unit(frame_poses_i_q)
-            frame_poses_i_q = standardize_quaternion(frame_poses_i_q)
-            # assert quaternion_is_standard(frame_poses_i_q)
-
-            f_b = frame_poses_i_b.reshape(-1, 3)
-            f_A = torch.Tensor(quaternion_to_matrix(frame_poses_i_q.reshape(-1, 4)))
-
-            world2frame = get_frame_transform_flat(f_A, f_b).reshape(
-                n_frames, n_steps, 4, 4
+            self.frame_quats_right = configurable_rotate_frames(
+                self.frame_quats_right,
+                enforce_z_down,
+                enforce_z_up,
+                add_init_ee_pose_as_frame,
+                add_world_frame,
             )
-            world2frame_vel = get_frame_transform_flat(
-                f_A, torch.zeros_like(f_b)  # Zero frame velocity
-            ).reshape(n_frames, n_steps, 4, 4)
-            frame2world = get_frame_transform_flat(f_A, f_b, invert=False).reshape(
-                n_frames, n_steps, 4, 4
+        else:
+            self.frame_quats = configurable_rotate_frames(
+                self.frame_quats,
+                enforce_z_down,
+                enforce_z_up,
+                add_init_ee_pose_as_frame,
+                add_world_frame,
             )
-            frame2world_vel = get_frame_transform_flat(
-                f_A, torch.zeros_like(f_b), invert=False
-            ).reshape(n_frames, n_steps, 4, 4)
 
-            # Pop out the EE pose
-            ee2world = frame2world[0, :, :, :].clone()
-            self.ee_poses.append(ee2world)
+        # Convert the reference frames and EE pose into homogeneous transforms.
+        def build_frame_transforms(frame_poses_input):
+            world2frames = []
+            world2frames_velocities = []
+            frames2world = []
+            frames2world_velocities = []
+            ee_poses_hom = []
 
-            # Add world frame and or initial EE pose as frame
-            id_frame = torch.eye(4).unsqueeze(0).unsqueeze(0).repeat(1, n_steps, 1, 1)
-            ee_frame = ee2world[0].unsqueeze(0).unsqueeze(0).repeat(1, n_steps, 1, 1)
-            ee_frame_vel = ee_frame.clone()
-            ee_frame_vel[:, :, :3, 3] = 0  # Zero frame velocity
+            for i in range(self.n_trajs):
+                frame_poses_i = frame_poses_input[i]
+                n_frames, n_steps, len_quat = frame_poses_i.shape
+                assert len_quat == 7
 
-            list_world2frames = []
-            list_frames2world = []
-            list_world2frames_vel = []
-            list_frames2world_vel = []
-            if add_world_frame:
-                list_world2frames.append(id_frame.clone())
-                list_frames2world.append(id_frame.clone())
-                list_world2frames_vel.append(id_frame.clone())
-                list_frames2world_vel.append(id_frame.clone())
-            if add_init_ee_pose_as_frame:
-                list_world2frames.append(invert_homogenous_transform(ee_frame))
-                list_frames2world.append(ee_frame)
-                list_world2frames_vel.append(invert_homogenous_transform(ee_frame_vel))
-                list_frames2world_vel.append(ee_frame_vel)
+                frame_poses_i_b = frame_poses_i[:, :, :3]  # position
+                frame_poses_i_q = frame_poses_i[:, :, 3:]  # quaternion
 
-            list_frames2world.append(frame2world[1:, :, :, :])
-            list_world2frames.append(world2frame[1:, :, :, :])
-            list_frames2world_vel.append(frame2world_vel[1:, :, :, :])
-            list_world2frames_vel.append(world2frame_vel[1:, :, :, :])
+                # First frame in frame_poses_i_q is the EE pose, see line 198.
+                # So, need to skip it and rotate the rest. Can achieve this by
+                # setting with_init_ee_pose to True and with_world_frame to False.
+                frame_poses_i_q = configurable_rotate_frames(
+                    frame_poses_i_q,
+                    enforce_z_down,
+                    enforce_z_up,
+                    with_init_ee_pose=True,
+                    with_world_frame=False,
+                )
 
-            frame2world = torch.cat(list_frames2world, dim=0)
-            world2frame = torch.cat(list_world2frames, dim=0)
-            frame2world_vel = torch.cat(list_frames2world_vel, dim=0)
-            world2frame_vel = torch.cat(list_world2frames_vel, dim=0)
+                assert quaternion_is_unit(frame_poses_i_q)
+                frame_poses_i_q = standardize_quaternion(frame_poses_i_q)
+                # assert quaternion_is_standard(frame_poses_i_q)
 
-            self.world2frames.append(world2frame)
-            self.frames2world.append(frame2world)
-            self.world2frames_velocities.append(world2frame_vel)
-            self.frames2world_velocities.append(frame2world_vel)
+                f_b = frame_poses_i_b.reshape(-1, 3)
+                f_A = torch.Tensor(quaternion_to_matrix(frame_poses_i_q.reshape(-1, 4)))
 
-        self.world2frames = tuple(self.world2frames)
-        self.world2frames_velocities = tuple(self.world2frames_velocities)
-        self.frames2world = tuple(self.frames2world)
-        self.frames2world_velocities = tuple(self.frames2world_velocities)
-        self.ee_poses = tuple(self.ee_poses)
+                world2frame = get_frame_transform_flat(f_A, f_b).reshape(
+                    n_frames, n_steps, 4, 4
+                )
+                world2frame_vel = get_frame_transform_flat(
+                    f_A, torch.zeros_like(f_b)  # Zero frame velocity
+                ).reshape(n_frames, n_steps, 4, 4)
+                frame2world = get_frame_transform_flat(f_A, f_b, invert=False).reshape(
+                    n_frames, n_steps, 4, 4
+                )
+                frame2world_vel = get_frame_transform_flat(
+                    f_A, torch.zeros_like(f_b), invert=False
+                ).reshape(n_frames, n_steps, 4, 4)
+
+                # Pop out the EE pose
+                ee2world = frame2world[0, :, :, :].clone()
+                ee_poses_hom.append(ee2world)
+
+                # Add world frame and or initial EE pose as frame
+                id_frame = torch.eye(4).unsqueeze(0).unsqueeze(0).repeat(1, n_steps, 1, 1)
+                ee_frame = ee2world[0].unsqueeze(0).unsqueeze(0).repeat(1, n_steps, 1, 1)
+                ee_frame_vel = ee_frame.clone()
+                ee_frame_vel[:, :, :3, 3] = 0  # Zero frame velocity
+
+                list_world2frames = []
+                list_frames2world = []
+                list_world2frames_vel = []
+                list_frames2world_vel = []
+                if add_world_frame:
+                    list_world2frames.append(id_frame.clone())
+                    list_frames2world.append(id_frame.clone())
+                    list_world2frames_vel.append(id_frame.clone())
+                    list_frames2world_vel.append(id_frame.clone())
+                if add_init_ee_pose_as_frame:
+                    list_world2frames.append(invert_homogenous_transform(ee_frame))
+                    list_frames2world.append(ee_frame)
+                    list_world2frames_vel.append(invert_homogenous_transform(ee_frame_vel))
+                    list_frames2world_vel.append(ee_frame_vel)
+
+                list_frames2world.append(frame2world[1:, :, :, :])
+                list_world2frames.append(world2frame[1:, :, :, :])
+                list_frames2world_vel.append(frame2world_vel[1:, :, :, :])
+                list_world2frames_vel.append(world2frame_vel[1:, :, :, :])
+
+                frame2world = torch.cat(list_frames2world, dim=0)
+                world2frame = torch.cat(list_world2frames, dim=0)
+                frame2world_vel = torch.cat(list_frames2world_vel, dim=0)
+                world2frame_vel = torch.cat(list_world2frames_vel, dim=0)
+
+                world2frames.append(world2frame)
+                frames2world.append(frame2world)
+                world2frames_velocities.append(world2frame_vel)
+                frames2world_velocities.append(frame2world_vel)
+
+            return (
+                tuple(world2frames),
+                tuple(world2frames_velocities),
+                tuple(frames2world),
+                tuple(frames2world_velocities),
+                tuple(ee_poses_hom),
+            )
+
+        if self.is_bimanual:
+            left_result = build_frame_transforms(frame_poses_left)
+
+            self.world2frames_left = left_result[0]
+            self.world2frames_velocities_left = left_result[1]
+            self.frames2world_left = left_result[2]
+            self.frames2world_velocities_left = left_result[3]
+            self.ee_poses_left = left_result[4]
+
+            right_result = build_frame_transforms(frame_poses_right)
+
+            self.world2frames_right = right_result[0]
+            self.world2frames_velocities_right = right_result[1]
+            self.frames2world_right = right_result[2]
+            self.frames2world_velocities_right = right_result[3]
+            self.ee_poses_right = right_result[4]
+        else:
+            result = build_frame_transforms(frame_poses)
+
+            self.world2frames = result[0]
+            self.world2frames_velocities = result[1]
+            self.frames2world = result[2]
+            self.frames2world_velocities = result[3]
+            self.ee_poses = result[4]
+
         # ee_poses_vel is the EE pose in world frame, but with zero bias (for velocity
         # frame transform). Analog to ee_quats for get_actions_world. Needed because
         # the EE frame transform is static over the trajectory.
-        self.ee_poses_vel = tuple(t.clone() for t in self.ee_poses)
-        for t in self.ee_poses_vel:
-            t[:, :3, 3] = 0
+        if self.is_bimanual:
+            self.left_ee_poses_vel = tuple(t.clone() for t in self.ee_poses_left)
+            for t in self.left_ee_poses_vel:
+                t[:, :3, 3] = 0
+
+            self.right_ee_poses_vel = tuple(t.clone() for t in self.ee_poses_right)
+            for t in self.right_ee_poses_vel:
+                t[:, :3, 3] = 0
+        else:
+            self.ee_poses_vel = tuple(t.clone() for t in self.ee_poses)
+            for t in self.ee_poses_vel:
+                t[:, :3, 3] = 0
 
         self.frame_names = []
         if add_world_frame:
@@ -447,40 +578,62 @@ class Demos:
         self._ee_frame_idx = (
             1 if add_world_frame else 0 if add_init_ee_pose_as_frame else None
         )
-
-        self.traj_lens = tuple(t.shape[0] for t in self.ee_poses)
+        if self.is_bimanual:
+            self.traj_lens = tuple(t.shape[0] for t in self.ee_poses_left)
+        else:
+            self.traj_lens = tuple(t.shape[0] for t in self.ee_poses)
         self.min_traj_len = min(self.traj_lens)
         self.max_traj_len = max(self.traj_lens)
         self.mean_traj_len = int(np.mean(self.traj_lens))
 
-        actions = [o.action for o in trajectories]
-        actions_hom = []
-        actions_quats = []
+        if self.is_bimanual:
+            actions_left = [o.action[:, :7] for o in trajectories]
+            actions_right = [o.action[:, 7:] for o in trajectories]
+        else:
+            actions = [o.action for o in trajectories]
+
 
         # Actions are EE-delta, EE-rotation (axis-angle) and gripper action.
         # Convert rotation into the homogeneous transforms as well to simplify
         # projections into local frames.
-        if actions[0].shape[1] == 6:  # no gripper action
-            self.gripper_actions = (None for _ in actions)
+        if self.is_bimanual:
+            self.gripper_actions_left = tuple(a[:, 6] for a in actions_left)
+            self.gripper_actions_right = tuple(a[:, 6] for a in actions_right)
         else:
-            self.gripper_actions = tuple(a[:, 6] for a in actions)
-        for i in range(self.n_trajs):
-            n_steps, len_action = actions[i].shape
-            assert len_action <= 7
-            a_A = axis_angle_to_matrix(actions[i][:, 3:6].reshape(-1, 3))
-            a_b = actions[i][:, :3].reshape(-1, 3)
-            actions_hom.append(
-                get_frame_transform_flat(a_A, a_b, invert=False).reshape(n_steps, 4, 4)
-            )
+            if actions[0].shape[1] == 6:  # no gripper action
+                self.gripper_actions = (None for _ in actions)
+            else:
+                self.gripper_actions = tuple(a[:, 6] for a in actions)
+        
+        def build_actions(actions_input):
+            actions_hom = []
+            actions_quats = []
 
-            actions_quats.append(
-                axis_angle_to_quaternion(actions[i][:, 3:6].reshape(-1, 3))
-            )
+            for i in range(self.n_trajs):
+                n_steps, len_action = actions_input[i].shape
+                assert len_action <= 7
+                a_A = axis_angle_to_matrix(actions_input[i][:, 3:6].reshape(-1, 3))
+                a_b = actions_input[i][:, :3].reshape(-1, 3)
+                actions_hom.append(
+                    get_frame_transform_flat(a_A, a_b, invert=False).reshape(n_steps, 4, 4)
+                )
 
-        self.ee_actions = tuple(actions_hom)
-        self.ee_actions_quats = tuple(actions_quats)
+                actions_quats.append(
+                    axis_angle_to_quaternion(actions_input[i][:, 3:6].reshape(-1, 3))
+                )
+            return tuple(actions_hom), tuple(actions_quats)
 
-        self.gripper_states = tuple(o.gripper_state for o in trajectories)
+        if self.is_bimanual:
+            self.ee_actions_left, self.ee_actions_quats_left = build_actions(actions_left)
+            self.ee_actions_right, self.ee_actions_quats_right = build_actions(actions_right)
+        else:
+            self.ee_actions, self.ee_actions_quats = build_actions(actions)
+
+        if self.is_bimanual:
+            self.gripper_states_left = tuple(o.gripper_state[:, :1] for o in trajectories)
+            self.gripper_states_right = tuple(o.gripper_state[:, 1:] for o in trajectories)
+        else:
+            self.gripper_states = tuple(o.gripper_state for o in trajectories)
 
         if not add_world_frame:
             n_frames -= 1
