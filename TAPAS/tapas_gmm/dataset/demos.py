@@ -634,6 +634,8 @@ class Demos:
             self.gripper_states_right = tuple(o.gripper_state[:, 1:] for o in trajectories)
         else:
             self.gripper_states = tuple(o.gripper_state for o in trajectories)
+        
+        n_frames = n_obj_frames + 1
 
         if not add_world_frame:
             n_frames -= 1
@@ -740,34 +742,101 @@ class Demos:
             "min" if use_min else "mean",
         )
 
-        indeces = [
-            get_idx_by_target_len(self.world2frames[i][0].shape[0], target_len)
-            for i in range(self.n_trajs)
-        ]
+        if self.is_bimanual:
+            indeces = [
+                get_idx_by_target_len(self.world2frames_left[i][0].shape[0], target_len)
+                for i in range(self.n_trajs)
+            ]
 
+            self.stacked_world2frames_left = self._subsample(self.world2frames_left, indeces)
+            self.stacked_world2frames_right = self._subsample(self.world2frames_right, indeces)
+
+            self.stacked_world2frame_velocities_left = self._subsample(
+                self.world2frames_velocities_left, indeces
+            )
+            self.stacked_world2frame_velocities_right = self._subsample(
+                self.world2frames_velocities_right, indeces
+            )
+
+            self.stacked_ee_actions_left = self._subsample(
+                self.ee_actions_left, indeces, dim=0
+            )
+            self.stacked_ee_actions_right = self._subsample(
+                self.ee_actions_right, indeces, dim=0
+            )
+
+            self.stacked_ee_poses_left = self._subsample(
+                self.ee_poses_left, indeces, dim=0
+            )
+            self.stacked_ee_poses_right = self._subsample(
+                self.ee_poses_right, indeces, dim=0
+            )
+
+            self.stacked_ee_quats_left = self._subsample(
+                self.left_ee_quats, indeces, dim=0
+            )
+            self.stacked_ee_quats_right = self._subsample(
+                self.right_ee_quats, indeces, dim=0
+            )
+
+            self.stacked_frame_quats_left = self._subsample(
+                self.frame_quats_left, indeces, dim=1
+            )
+            self.stacked_frame_quats_right = self._subsample(
+                self.frame_quats_right, indeces, dim=1
+            )
+
+            self.stacked_ee_actions_quats_left = self._subsample(
+                self.ee_actions_quats_left, indeces, dim=0
+            )
+            self.stacked_ee_actions_quats_right = self._subsample(
+                self.ee_actions_quats_right, indeces, dim=0
+            )
+
+            self.stacked_gripper_actions_left = self._subsample(
+                self.gripper_actions_left, indeces, dim=0
+            )
+            self.stacked_gripper_actions_right = self._subsample(
+                self.gripper_actions_right, indeces, dim=0
+            )
+
+            self.stacked_gripper_states_left = self._subsample(
+                self.gripper_states_left, indeces, dim=0
+            )
+            self.stacked_gripper_states_right = self._subsample(
+                self.gripper_states_right, indeces, dim=0
+            )
+
+        else:
+            indeces = [
+                get_idx_by_target_len(self.world2frames[i][0].shape[0], target_len)
+                for i in range(self.n_trajs)
+            ]
+
+            self.stacked_world2frames = self._subsample(self.world2frames, indeces)
+            self.stacked_world2frame_velocities = self._subsample(
+                self.world2frames_velocities, indeces
+            )
+
+            self.stacked_ee_actions = self._subsample(self.ee_actions, indeces, dim=0)
+            self.stacked_ee_poses = self._subsample(self.ee_poses, indeces, dim=0)
+
+            self.stacked_ee_quats = self._subsample(self.ee_quats, indeces, dim=0)
+            self.stacked_frame_quats = self._subsample(self.frame_quats, indeces, dim=1)
+
+            self.stacked_ee_actions_quats = self._subsample(
+                self.ee_actions_quats, indeces, dim=0
+            )
+
+            self.stacked_gripper_actions = self._subsample(
+                self.gripper_actions, indeces, dim=0
+            )
+
+            self.stacked_gripper_states = self._subsample(
+                self.gripper_states, indeces, dim=0
+            )
+        
         self._ss_idx = indeces
-
-        self.stacked_world2frames = self._subsample(self.world2frames, indeces)
-        self.stacked_world2frame_velocities = self._subsample(
-            self.world2frames_velocities, indeces
-        )
-        self.stacked_ee_actions = self._subsample(self.ee_actions, indeces, dim=0)
-        self.stacked_ee_poses = self._subsample(self.ee_poses, indeces, dim=0)
-
-        self.stacked_ee_quats = self._subsample(self.ee_quats, indeces, dim=0)
-        self.stacked_frame_quats = self._subsample(self.frame_quats, indeces, dim=1)
-
-        self.stacked_ee_actions_quats = self._subsample(
-            self.ee_actions_quats, indeces, dim=0
-        )
-
-        self.stacked_gripper_actions = self._subsample(
-            self.gripper_actions, indeces, dim=0
-        )
-
-        self.stacked_gripper_states = self._subsample(
-            self.gripper_states, indeces, dim=0
-        )
 
     @property
     def _n_gripper_states(self):
