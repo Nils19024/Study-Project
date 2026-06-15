@@ -1193,6 +1193,27 @@ class Demos:
         Get the EE actions in world frame as homogenous transforms.
         (Raw actions are deltas in EE frame.)
         """
+
+        if self.is_bimanual:
+            actions_ee_left = self.ee_actions_left
+            actions_ee_right = self.ee_actions_right
+
+            ee2world_left = self.left_ee_poses_vel
+            ee2world_right = self.right_ee_poses_vel
+
+            actions_world_left = tuple(
+                trans @ act for trans, act in zip(ee2world_left, actions_ee_left)
+            )
+            actions_world_right = tuple(
+                trans @ act for trans, act in zip(ee2world_right, actions_ee_right)
+            )
+
+            if subsampled:
+                actions_world_left = self._subsample(actions_world_left, dim=0)
+                actions_world_right = self._subsample(actions_world_right, dim=0)
+
+            return actions_world_left, actions_world_right
+        
         actions_ee = self.ee_actions
         # NOTE: frames2world_velocities only contains the STATIC initial EE frame,
         # but we need the dynamic EE pose to transform the actions across the trajectory.
@@ -1280,6 +1301,25 @@ class Demos:
         Get the factorization of the action into direction and magnitude.
         """
         actions = self.get_actions_world(subsampled=subsampled)
+
+        if self.is_bimanual:
+            actions_left, actions_right = actions
+
+            pos_left = get_b_from_homogenous_transforms(actions_left)
+            pos_right = get_b_from_homogenous_transforms(actions_right)
+
+            dir_left, mag_left = translation_to_direction_and_magnitude(pos_left)
+            dir_right, mag_right = translation_to_direction_and_magnitude(pos_right)
+
+            direction = (dir_left, dir_right)
+            # Take the mimium, beacause segmenting the trajectory if one of both arms is moving slow
+            magnitude = tuple(
+                torch.minimum(left, right)
+                for left, right in zip(mag_left, mag_right)
+            )
+
+            return direction, magnitude
+        
         pos = get_b_from_homogenous_transforms(actions)
         dir, mag = translation_to_direction_and_magnitude(pos)
 
@@ -1292,6 +1332,10 @@ class Demos:
         position_only: bool = False,
     ) -> torch.Tensor | tuple[torch.Tensor, ...]:
         _, pos_mag = self.get_pos_action_factorization(subsampled=subsampled)
+
+        if self.is_bimanual:
+            ret = tuple(p.unsqueeze(-1) for p in pos_mag)
+            return ret
 
         if position_only:
             if type(pos_mag) is torch.Tensor:
