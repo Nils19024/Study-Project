@@ -1424,6 +1424,21 @@ class Demos:
 
         @lru_cache  # Nested function to cache result independtly of flat-arg.
         def _get_x_per_frame(self, subsampled=True, fixed_frames=False):
+            if self.is_bimanual:
+                left_obs = get_obs_per_frame(
+                    self.stacked_world2frames_left,
+                    self.stacked_ee_poses_left,
+                )
+                right_obs = get_obs_per_frame(
+                    self.stacked_world2frames_right,
+                    self.stacked_ee_poses_right,
+                )
+
+                left_pos = get_b_from_homogenous_transforms(left_obs)
+                right_pos = get_b_from_homogenous_transforms(right_obs)
+
+                return torch.cat([left_pos, right_pos], dim=-1)
+
             if pos_only:
                 obs = self.get_obs_per_frame(
                     subsampled, fixed_frames, False, skip_quat_dim
@@ -2860,27 +2875,114 @@ class DemosSegment(Demos):
         self.n_frames = self.full_demos.n_frames
         self.n_trajs = self.full_demos.n_trajs
         self.frame_names = self.full_demos.frame_names
+        self.is_bimanual = self.full_demos.is_bimanual
 
-        self.world2frames = self._get_indexed(self.full_demos.world2frames, 1)
-        self.world2frames_velocities = self._get_indexed(
-            self.full_demos.world2frames_velocities, 1
-        )
-        self.frames2world = self._get_indexed(self.full_demos.frames2world, 1)
-        self.frames2world_velocities = self._get_indexed(
-            self.full_demos.frames2world_velocities, 1
-        )
-        self.frame_quats = self._get_indexed(self.full_demos.frame_quats, 1)
+        if self.is_bimanual:
+            self.world2frames_left = self._get_indexed(
+                self.full_demos.world2frames_left, 1
+            )
+            self.world2frames_right = self._get_indexed(
+                self.full_demos.world2frames_right, 1
+            )
 
-        self.ee_poses = self._get_indexed(self.full_demos.ee_poses, 0)
-        self.ee_poses_vel = self._get_indexed(self.full_demos.ee_poses_vel, 0)
-        self.ee_poses_raw = self._get_indexed(self.full_demos.ee_poses_raw, 0)
-        self.ee_quats = self._get_indexed(self.full_demos.ee_quats, 0)
-        self.gripper_actions = self._get_indexed(self.full_demos.gripper_actions, 0)
-        self.gripper_states = self._get_indexed(self.full_demos.gripper_states, 0)
-        self.ee_actions = self._get_indexed(self.full_demos.ee_actions, 0)
-        self.ee_actions_quats = self._get_indexed(self.full_demos.ee_actions_quats, 0)
+            self.world2frames_velocities_left = self._get_indexed(
+                self.full_demos.world2frames_velocities_left, 1
+            )
+            self.world2frames_velocities_right = self._get_indexed(
+                self.full_demos.world2frames_velocities_right, 1
+            )
 
-        self.traj_lens = tuple(t.shape[0] for t in self.ee_poses)
+            self.frames2world_left = self._get_indexed(
+                self.full_demos.frames2world_left, 1
+            )
+            self.frames2world_right = self._get_indexed(
+                self.full_demos.frames2world_right, 1
+            )
+
+            self.frames2world_velocities_left = self._get_indexed(
+                self.full_demos.frames2world_velocities_left, 1
+            )
+            self.frames2world_velocities_right = self._get_indexed(
+                self.full_demos.frames2world_velocities_right, 1
+            )
+
+            self.frame_quats_left = self._get_indexed(
+                self.full_demos.frame_quats_left, 1
+            )
+            self.frame_quats_right = self._get_indexed(
+                self.full_demos.frame_quats_right, 1
+            )
+        else:
+            self.world2frames = self._get_indexed(self.full_demos.world2frames, 1)
+            self.world2frames_velocities = self._get_indexed(
+                self.full_demos.world2frames_velocities, 1
+            )
+            self.frames2world = self._get_indexed(self.full_demos.frames2world, 1)
+            self.frames2world_velocities = self._get_indexed(
+                self.full_demos.frames2world_velocities, 1
+            )
+            self.frame_quats = self._get_indexed(self.full_demos.frame_quats, 1)
+
+        if self.is_bimanual:
+            self.ee_poses_left = self._get_indexed(self.full_demos.ee_poses_left, 0)
+            self.ee_poses_right = self._get_indexed(self.full_demos.ee_poses_right, 0)
+
+            self.left_ee_poses_vel = self._get_indexed(
+                self.full_demos.left_ee_poses_vel, 0
+            )
+            self.right_ee_poses_vel = self._get_indexed(
+                self.full_demos.right_ee_poses_vel, 0
+            )
+
+            self.left_ee_poses_raw = self._get_indexed(
+                self.full_demos.left_ee_poses_raw, 0
+            )
+            self.right_ee_poses_raw = self._get_indexed(
+                self.full_demos.right_ee_poses_raw, 0
+            )
+
+            self.left_ee_quats = self._get_indexed(self.full_demos.left_ee_quats, 0)
+            self.right_ee_quats = self._get_indexed(self.full_demos.right_ee_quats, 0)
+
+            self.gripper_actions_left = self._get_indexed(
+                self.full_demos.gripper_actions_left, 0
+            )
+            self.gripper_actions_right = self._get_indexed(
+                self.full_demos.gripper_actions_right, 0
+            )
+
+            self.gripper_states_left = self._get_indexed(
+                self.full_demos.gripper_states_left, 0
+            )
+            self.gripper_states_right = self._get_indexed(
+                self.full_demos.gripper_states_right, 0
+            )
+
+            self.ee_actions_left = self._get_indexed(self.full_demos.ee_actions_left, 0)
+            self.ee_actions_right = self._get_indexed(
+                self.full_demos.ee_actions_right, 0
+            )
+
+            self.ee_actions_quats_left = self._get_indexed(
+                self.full_demos.ee_actions_quats_left, 0
+            )
+            self.ee_actions_quats_right = self._get_indexed(
+                self.full_demos.ee_actions_quats_right, 0
+            )
+        else:
+            self.ee_poses = self._get_indexed(self.full_demos.ee_poses, 0)
+            self.ee_poses_vel = self._get_indexed(self.full_demos.ee_poses_vel, 0)
+            self.ee_poses_raw = self._get_indexed(self.full_demos.ee_poses_raw, 0)
+            self.ee_quats = self._get_indexed(self.full_demos.ee_quats, 0)
+            self.gripper_actions = self._get_indexed(self.full_demos.gripper_actions, 0)
+            self.gripper_states = self._get_indexed(self.full_demos.gripper_states, 0)
+            self.ee_actions = self._get_indexed(self.full_demos.ee_actions, 0)
+            self.ee_actions_quats = self._get_indexed(self.full_demos.ee_actions_quats, 0)
+        
+        if self.is_bimanual:
+            self.traj_lens = tuple(t.shape[0] for t in self.ee_poses_left)
+        else:
+            self.traj_lens = tuple(t.shape[0] for t in self.ee_poses)
         self.min_traj_len = min(self.traj_lens)
         self.max_traj_len = max(self.traj_lens)
         self.mean_traj_len = int(np.mean(self.traj_lens))
