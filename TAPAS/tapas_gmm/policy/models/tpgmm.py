@@ -2156,7 +2156,7 @@ class TPGMM:
         plot_data.append(
             SingleDimPlotData(
                 data=frame_data[..., data_start:data_stop],
-                name="pos",
+                name="left pos" if self._demos.is_bimanual else "pos",
                 per_frame=True,
                 manifold=Manifold_R3,
                 mu=pos_mu,
@@ -2165,6 +2165,33 @@ class TPGMM:
         )
 
         man_frame_idx += 1
+
+        if self._demos.is_bimanual and self.config.position_only:
+            pos_mu, pos_sigma = self._get_component_mu_sigma_per_frame(
+                mu,
+                mu_tan,
+                sigma,
+                man_frame_idx,
+                time_based=time_based,
+                xdx_based=xdx_based,
+                mu_on_tangent=False,
+            )
+            data_start, data_stop = self._get_frame_data_idx(
+                man_frame_idx, tangent=False
+            )
+
+            plot_data.append(
+                SingleDimPlotData(
+                    data=frame_data[..., data_start:data_stop],
+                    name="right pos",
+                    per_frame=True,
+                    manifold=Manifold_R3,
+                    mu=pos_mu,
+                    sigma=pos_sigma,
+                )
+            )
+
+            man_frame_idx += 1
 
         # Rotation data
         if not self.config.position_only:
