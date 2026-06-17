@@ -843,6 +843,29 @@ class Demos:
         """
         Return how often the gripper changes state (avg over all trajectories).
         """
+        # If one of the gripper changes state, it counts as a new state
+        if self.is_bimanual:
+            gripper_states = torch.cat(
+                [
+                    self.stacked_gripper_states_left,
+                    self.stacked_gripper_states_right,
+                ],
+                dim=-1,
+            )
+
+            changes = gripper_states[:, :-1] != gripper_states[:, 1:]
+            changes = changes.any(dim=-1)
+
+            return (
+                np.count_nonzero(
+                    changes,
+                    axis=1,
+                )
+                .mean()
+                .astype(int)
+                + 1
+            )
+
         return (
             np.count_nonzero(
                 self.stacked_gripper_states[:, :-1]
@@ -972,6 +995,22 @@ class Demos:
         def _get_obs_per_frame(
             self, subsampled: bool = False, fixed_frames: bool = False
         ) -> torch.Tensor | tuple[torch.Tensor]:
+            if self.is_bimanual:
+                transforms_left = self.world2frames_left
+                transforms_right = self.world2frames_right
+
+                if subsampled:
+                    transforms_left = self.stacked_world2frames_left
+                    transforms_right = self.stacked_world2frames_right
+
+                poses_left = self.stacked_ee_poses_left if subsampled else self.ee_poses_left
+                poses_right = self.stacked_ee_poses_right if subsampled else self.ee_poses_right
+
+                obs_left = get_obs_per_frame(transforms_left, poses_left)
+                obs_right = get_obs_per_frame(transforms_right, poses_right)
+
+                return obs_left, obs_right
+            
             transforms = self._world2frames_fixed if fixed_frames else self.world2frames
 
             if subsampled and not fixed_frames:
@@ -2646,14 +2685,41 @@ class PartialFrameViewDemos(Demos):
         self.meta_data["FrameIndecies"] = frame_indeces
         self.frame_indecies = frame_indeces
 
-        self.ee_poses = self.full_demos.ee_poses
-        self.ee_poses_raw = self.full_demos.ee_poses_raw
-        self.ee_poses_vel = self.full_demos.ee_poses_vel
-        self.ee_quats = self.full_demos.ee_quats
-        self.gripper_actions = self.full_demos.gripper_actions
-        self.gripper_states = self.full_demos.gripper_states
-        self.ee_actions = self.full_demos.ee_actions
-        self.ee_actions_quats = self.full_demos.ee_actions_quats
+        self.is_bimanual = self.full_demos.is_bimanual
+
+        if self.is_bimanual:
+            self.ee_poses_left = self.full_demos.ee_poses_left
+            self.ee_poses_right = self.full_demos.ee_poses_right
+
+            self.left_ee_poses_raw = self.full_demos.left_ee_poses_raw
+            self.right_ee_poses_raw = self.full_demos.right_ee_poses_raw
+
+            self.left_ee_poses_vel = self.full_demos.left_ee_poses_vel
+            self.right_ee_poses_vel = self.full_demos.right_ee_poses_vel
+
+            self.left_ee_quats = self.full_demos.left_ee_quats
+            self.right_ee_quats = self.full_demos.right_ee_quats
+
+            self.gripper_actions_left = self.full_demos.gripper_actions_left
+            self.gripper_actions_right = self.full_demos.gripper_actions_right
+
+            self.gripper_states_left = self.full_demos.gripper_states_left
+            self.gripper_states_right = self.full_demos.gripper_states_right
+
+            self.ee_actions_left = self.full_demos.ee_actions_left
+            self.ee_actions_right = self.full_demos.ee_actions_right
+
+            self.ee_actions_quats_left = self.full_demos.ee_actions_quats_left
+            self.ee_actions_quats_right = self.full_demos.ee_actions_quats_right
+        else:
+            self.ee_poses = self.full_demos.ee_poses
+            self.ee_poses_raw = self.full_demos.ee_poses_raw
+            self.ee_poses_vel = self.full_demos.ee_poses_vel
+            self.ee_quats = self.full_demos.ee_quats
+            self.gripper_actions = self.full_demos.gripper_actions
+            self.gripper_states = self.full_demos.gripper_states
+            self.ee_actions = self.full_demos.ee_actions
+            self.ee_actions_quats = self.full_demos.ee_actions_quats
 
         self.n_frames = len(frame_indeces)
         self.n_trajs = self.full_demos.n_trajs
@@ -2696,6 +2762,46 @@ class PartialFrameViewDemos(Demos):
     @property
     def frame_quats(self):
         return self._get_indexed(self.full_demos.frame_quats)
+
+    @property
+    def world2frames_left(self):
+        return self._get_indexed(self.full_demos.world2frames_left)
+
+    @property
+    def world2frames_right(self):
+        return self._get_indexed(self.full_demos.world2frames_right)
+
+    @property
+    def world2frames_velocities_left(self):
+        return self._get_indexed(self.full_demos.world2frames_velocities_left)
+
+    @property
+    def world2frames_velocities_right(self):
+        return self._get_indexed(self.full_demos.world2frames_velocities_right)
+
+    @property
+    def frames2world_left(self):
+        return self._get_indexed(self.full_demos.frames2world_left)
+
+    @property
+    def frames2world_right(self):
+        return self._get_indexed(self.full_demos.frames2world_right)
+
+    @property
+    def frames2world_velocities_left(self):
+        return self._get_indexed(self.full_demos.frames2world_velocities_left)
+
+    @property
+    def frames2world_velocities_right(self):
+        return self._get_indexed(self.full_demos.frames2world_velocities_right)
+
+    @property
+    def frame_quats_left(self):
+        return self._get_indexed(self.full_demos.frame_quats_left)
+
+    @property
+    def frame_quats_right(self):
+        return self._get_indexed(self.full_demos.frame_quats_right)
 
     @property
     def _world2frames_fixed(self):
