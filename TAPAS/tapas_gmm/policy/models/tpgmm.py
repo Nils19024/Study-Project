@@ -548,9 +548,14 @@ class TPGMM:
         """
         The manifold of a single frame.
         """
-        m_state = (
-            Manifold_R3 if self.config.position_only else Manifold_R3 * Manifold_Quat
-        )
+        is_bimanual = self._demos is not None and self._demos.is_bimanual
+
+        if self.config.position_only:
+            if is_bimanual:
+                m_state = Manifold_R3 * Manifold_R3
+            else:
+                m_state = Manifold_R3 
+        
         m_action = (
             Manifold_S2
             if self.config.action_as_orientation and self.config.position_only
