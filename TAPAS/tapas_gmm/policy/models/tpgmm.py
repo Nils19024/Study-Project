@@ -548,13 +548,9 @@ class TPGMM:
         """
         The manifold of a single frame.
         """
-        is_bimanual = self._demos is not None and self._demos.is_bimanual
 
         if self.config.position_only:
-            if is_bimanual:
-                m_state = Manifold_R3 * Manifold_R3
-            else:
-                m_state = Manifold_R3 
+            m_state = Manifold_R3
         
         m_action = (
             Manifold_S2
@@ -908,7 +904,7 @@ class TPGMM:
             model = self.model
 
         manifolds_per_frame = _get_rbd_manifolds_per_frame(
-            self.config.position_only, self.config.add_action_component
+            self.config.position_only, self.config.add_action_component, self._demos.is_bimanual,
         )
 
         global_dim_idcs = self._global_action_full_model_dim_idcs
@@ -2156,7 +2152,7 @@ class TPGMM:
         plot_data.append(
             SingleDimPlotData(
                 data=frame_data[..., data_start:data_stop],
-                name="left pos" if self._demos.is_bimanual else "pos",
+                name="pos",
                 per_frame=True,
                 manifold=Manifold_R3,
                 mu=pos_mu,
@@ -2166,32 +2162,6 @@ class TPGMM:
 
         man_frame_idx += 1
 
-        if self._demos.is_bimanual and self.config.position_only:
-            pos_mu, pos_sigma = self._get_component_mu_sigma_per_frame(
-                mu,
-                mu_tan,
-                sigma,
-                man_frame_idx,
-                time_based=time_based,
-                xdx_based=xdx_based,
-                mu_on_tangent=False,
-            )
-            data_start, data_stop = self._get_frame_data_idx(
-                man_frame_idx, tangent=False
-            )
-
-            plot_data.append(
-                SingleDimPlotData(
-                    data=frame_data[..., data_start:data_stop],
-                    name="right pos",
-                    per_frame=True,
-                    manifold=Manifold_R3,
-                    mu=pos_mu,
-                    sigma=pos_sigma,
-                )
-            )
-
-            man_frame_idx += 1
 
         # Rotation data
         if not self.config.position_only:
@@ -2923,7 +2893,7 @@ class AutoTPGMM(TPGMM):
                 # if segment_frame_idcs is disjoint for consecutive segments,
                 # rank all not selected frames from both and add the best ones to the
                 # respective segment where it is missing.
-                if previous_segment_frame_idcs is not None and set(
+                if (not segment.is_bimanual) and previous_segment_frame_idcs is not None and set(
                     previous_segment_frame_idcs
                 ).isdisjoint(segment_frame_idcs):
                     logger.warning(
@@ -2953,6 +2923,12 @@ class AutoTPGMM(TPGMM):
             min_n_components += 1 if self.config.tpgmm.fix_first_component else 0
             min_n_components += 1 if self.config.tpgmm.fix_last_component else 0
 
+            if segment.is_bimanual:
+                left_frame_idcs, right_frame_idcs = segment_frame_idcs
+                segment_frame_idcs = tuple(
+                    sorted(set(left_frame_idcs) | set(right_frame_idcs))
+                )
+
             segement_frames.append(segment_frame_idcs)
             segment_gmm = self._create_tpgmm(
                 overwrites=self._get_segment_tpgmm_overwrites(
@@ -2961,7 +2937,15 @@ class AutoTPGMM(TPGMM):
                     min_n_components=min_n_components,
                 )
             )
-            frame_data = PartialFrameViewDemos(segment, list(segment_frame_idcs))
+            if segment.is_bimanual:
+                frame_data = PartialFrameViewDemos(
+                    segment,
+                    list(segment_frame_idcs),
+                    left_frame_indeces=list(left_frame_idcs),
+                    right_frame_indeces=list(right_frame_idcs),
+                )
+            else:
+                frame_data = PartialFrameViewDemos(segment, list(segment_frame_idcs))
 
             segment_frame_views.append(frame_data)
             segment_gmms.append(segment_gmm)
@@ -2977,18 +2961,34 @@ class AutoTPGMM(TPGMM):
             logger.info(f"Frame score (abs):\n{candidate_frame_ic}", filter=False)
             logger.info(f"Frame score (rel):\n{candidate_frame_rel_ic}", filter=False)
         else:
-            abs_df = pd.DataFrame(
-                candidate_frame_ic,
-                columns=demos.frame_names,
-                index=[f"Segment {i}" for i in range(len(segments))],
-            )
-            rel_df = pd.DataFrame(
-                candidate_frame_rel_ic,
-                columns=demos.frame_names,
-                index=[f"Segment {i}" for i in range(len(segments))],
-            )
-            logger.info(f"Frame score (abs):\n{abs_df}", filter=False)
-            logger.info(f"Frame score (rel):\n{rel_df}", filter=False)
+            if demos.is_bimanual:
+                for arm_index, arm_name in enumerate(["left", "right"]):
+                    abs_df = pd.DataFrame(
+                        candidate_frame_ic[:, arm_index, :],
+                        columns=demos.frame_names,
+                        index=[f"Segment {i}" for i in range(len(segments))],
+                    )
+                    rel_df = pd.DataFrame(
+                        candidate_frame_rel_ic[:, arm_index, :],
+                        columns=demos.frame_names,
+                        index=[f"Segment {i}" for i in range(len(segments))],
+                    )
+
+                    logger.info(f"Frame score {arm_name} (abs):\n{abs_df}", filter=False)
+                    logger.info(f"Frame score {arm_name} (rel):\n{rel_df}", filter=False)
+            else:
+                abs_df = pd.DataFrame(
+                    candidate_frame_ic,
+                    columns=demos.frame_names,
+                    index=[f"Segment {i}" for i in range(len(segments))],
+                )
+                rel_df = pd.DataFrame(
+                    candidate_frame_rel_ic,
+                    columns=demos.frame_names,
+                    index=[f"Segment {i}" for i in range(len(segments))],
+                )
+                logger.info(f"Frame score (abs):\n{abs_df}", filter=False)
+                logger.info(f"Frame score (rel):\n{rel_df}", filter=False)
 
         self.segment_gmms = segment_gmms
         self.segment_frames = segement_frames
@@ -3028,22 +3028,45 @@ class AutoTPGMM(TPGMM):
                 )
             )
             # relative precision across frames
-            candidate_ic = candidate_ic / candidate_ic.sum(axis=0)
-            candidate_ic = candidate_ic.max(axis=1)  # max over gaussians (time)
+            if demos.is_bimanual:
+                candidate_ic = candidate_ic / candidate_ic.sum(axis=0)
+                candidate_ic = candidate_ic.max(axis=2)
+                candidate_ic = candidate_ic.T # [frame, arm] -> [arm, frame]
+            else:
+                candidate_ic = candidate_ic / candidate_ic.sum(axis=0)
+                candidate_ic = candidate_ic.max(axis=1)  # max over gaussians (time)
 
             candidate_ic = tuple(-candidate_ic)  # for consistency with AIC/BIC
 
-        rel_candidate_ic = np.array(candidate_ic) / np.min(candidate_ic)
+        if demos.is_bimanual:
+            rel_candidate_ic = np.array(candidate_ic) / np.min(candidate_ic, axis=1, keepdims=True)
+        else:
+            rel_candidate_ic = np.array(candidate_ic) / np.min(candidate_ic)
 
-        for fr, bic, rel in zip(demos.frame_names, candidate_ic, rel_candidate_ic):
-            logger.info(f"{fr:10} score (rel): {bic:6.0f} ({rel:.3f})")
+        if demos.is_bimanual:
+            for arm_index, arm_name in enumerate(["left", "right"]):
+                for fr, bic, rel in zip(
+                    demos.frame_names,
+                    candidate_ic[arm_index],
+                    rel_candidate_ic[arm_index],
+                ):
+                    logger.info(f"{fr:10} {arm_name:5} score (rel): {bic:6.0f} ({rel:.3f})")
+        else:
+            for fr, bic, rel in zip(demos.frame_names, candidate_ic, rel_candidate_ic):
+                logger.info(f"{fr:10} score (rel): {bic:6.0f} ({rel:.3f})")
         super_threshold = rel_candidate_ic > rel_score_threshold
 
         if drop_candidates is not None:
             logger.info(f"Dropping redundant frames {drop_candidates}.")
             super_threshold[drop_candidates] = False
-
-        selected_idcs = np.argwhere(super_threshold)[:, 0]
+        
+        if demos.is_bimanual:
+            selected_idcs = tuple(
+                tuple(np.argwhere(super_threshold[arm_index])[:, 0])
+                for arm_index in range(2)
+            )
+        else:
+            selected_idcs = np.argwhere(super_threshold)[:, 0]
 
         return (
             np.array(candidate_ic),
@@ -3073,38 +3096,83 @@ class AutoTPGMM(TPGMM):
                 logger.info(
                     f"Fitting candidate frame {i+1}/{n_candidate_frames}", filter=False
                 )
-                frame_gmm = self._create_tpgmm(
-                    overwrites=self._get_segment_tpgmm_overwrites(
-                        n_segments=(
-                            1
-                            if self._demos_segments is None
-                            else len(self._demos_segments)
-                        ),
-                        relative_duration=demos.relative_duration,
-                        drop_action_component=self.config.frame_selection.pose_only,
+                
+                if demos.is_bimanual:
+                    arm_scores = []
+                    arm_gmms = []
+
+                    for arm in ["left", "right"]:
+                        frame_gmm = self._create_tpgmm(
+                            overwrites=self._get_segment_tpgmm_overwrites(
+                                n_segments=(
+                                    1
+                                    if self._demos_segments is None
+                                    else len(self._demos_segments)
+                                ),
+                                relative_duration=demos.relative_duration,
+                                drop_action_component=self.config.frame_selection.pose_only,
+                            )
+                        )
+
+                        frame_data = PartialFrameViewDemos(demos, [i], arm=arm)
+
+                        lik, avg_loglik = frame_gmm.fit_trajectories(
+                            frame_data,
+                            fix_frames=fix_frames,
+                            init_strategy=init_strategy,
+                            fitting_actions=fitting_actions,
+                        )
+
+                        score = (
+                            frame_gmm.model.precision_det
+                            if self.config.frame_selection.use_precision
+                            else (
+                                frame_gmm.model.bic_from_lik(lik)
+                                if self.config.frame_selection.use_bic
+                                else frame_gmm.model.aic_from_lik(lik)
+                            )
+                        )
+
+                        arm_scores.append(score)
+                        arm_gmms.append(frame_gmm)
+
+                    candidate_gmms.append(arm_gmms)
+                    candidate_score.append(arm_scores)
+
+                else:
+                    frame_gmm = self._create_tpgmm(
+                        overwrites=self._get_segment_tpgmm_overwrites(
+                            n_segments=(
+                                1
+                                if self._demos_segments is None
+                                else len(self._demos_segments)
+                            ),
+                            relative_duration=demos.relative_duration,
+                            drop_action_component=self.config.frame_selection.pose_only,
+                        )
                     )
-                )
-                frame_data = PartialFrameViewDemos(demos, [i])
 
-                lik, avg_loglik = frame_gmm.fit_trajectories(
-                    frame_data,
-                    fix_frames=fix_frames,
-                    init_strategy=init_strategy,
-                    fitting_actions=fitting_actions,
-                )
+                    frame_data = PartialFrameViewDemos(demos, [i])
 
-                score = (
-                    frame_gmm.model.precision_det
-                    if self.config.frame_selection.use_precision
-                    else (
-                        frame_gmm.model.bic_from_lik(lik)
-                        if self.config.frame_selection.use_bic
-                        else frame_gmm.model.aic_from_lik(lik)
+                    lik, avg_loglik = frame_gmm.fit_trajectories(
+                        frame_data,
+                        fix_frames=fix_frames,
+                        init_strategy=init_strategy,
+                        fitting_actions=fitting_actions,
                     )
-                )
 
-                candidate_gmms.append(frame_gmm)
-                candidate_score.append(score)
+                    score = (
+                        frame_gmm.model.precision_det
+                        if self.config.frame_selection.use_precision
+                        else (
+                            frame_gmm.model.bic_from_lik(lik)
+                            if self.config.frame_selection.use_bic
+                            else frame_gmm.model.aic_from_lik(lik)
+                        )
+                    )
+
+                    candidate_gmms.append(frame_gmm)
+                    candidate_score.append(score)
 
         if self.config.frame_selection.use_precision:
             # Return stacked instead of taking max here for finding redundant frames
@@ -3181,7 +3249,7 @@ class AutoTPGMM(TPGMM):
         )
 
         manifolds_per_frame = _get_rbd_manifolds_per_frame(
-            self.config.tpgmm.position_only, self.config.tpgmm.add_action_component
+            self.config.tpgmm.position_only, self.config.tpgmm.add_action_component, self._demos.is_bimanual
         )
 
         # TODO: add global dims
@@ -3905,7 +3973,30 @@ class AutoTPGMM(TPGMM):
                 for m in self.segment_gmms
             ]
 
-            all_frames = sorted(set.union(*[set(s) for s in self.segment_frames]))
+            if self._demos.is_bimanual:
+                segment_plot_frames = []
+
+                for frame_data in self.segment_frame_views:
+                    frames = []
+
+                    for frame_idx in frame_data.left_frame_indecies:
+                        frames.append(("left", frame_idx))
+
+                    for frame_idx in frame_data.right_frame_indecies:
+                        frames.append(("right", frame_idx))
+
+                    segment_plot_frames.append(frames)
+
+                all_frames = []
+                for frames in segment_plot_frames:
+                    for frame in frames:
+                        if frame not in all_frames:
+                            all_frames.append(frame)
+
+            else:
+                segment_plot_frames = self.segment_frames
+                all_frames = sorted(set.union(*[set(s) for s in self.segment_frames]))
+
             n_frames = len(all_frames)
 
             joint_data = []
@@ -3946,7 +4037,7 @@ class AutoTPGMM(TPGMM):
                     for s, t, (j, d) in zip(
                         time_starts, time_stops, enumerate(dim_segments)
                     ):
-                        for k, frame_no in enumerate(self.segment_frames[j]):
+                        for k, frame_no in enumerate(segment_plot_frames[j]):
                             global_frame_no = all_frames.index(frame_no)
                             dim_data[:, s:t, global_frame_no, :] = d.data[:, :, k, :]
 
@@ -3966,7 +4057,7 @@ class AutoTPGMM(TPGMM):
                     for s, t, (j, d) in zip(
                         gaus_seg_starts, gaus_seg_stops, enumerate(dim_segments)
                     ):
-                        for k, frame_no in enumerate(self.segment_frames[j]):
+                        for k, frame_no in enumerate(segment_plot_frames[j]):
                             global_frame_no = all_frames.index(frame_no)
                             local_mu = d.mu[k, ...]
                             local_sigma = d.sigma[k, ...]
@@ -3989,7 +4080,13 @@ class AutoTPGMM(TPGMM):
                     )
                 )
 
-            frame_names = tuple(self._demos.frame_names[i] for i in all_frames)
+            if self._demos.is_bimanual:
+                frame_names = tuple(
+                    f"{arm} {self._demos.frame_names[frame_idx]}"
+                    for arm, frame_idx in all_frames
+                )
+            else:
+                frame_names = tuple(self._demos.frame_names[i] for i in all_frames)
 
             joint_container = TPGMMPlotData(frame_names=frame_names, dims=joint_data)
 
@@ -4255,8 +4352,11 @@ class AutoTPGMM(TPGMM):
         self.segment_frame_views = ckpt.segment_frame_views
 
 
-def _get_rbd_manifolds_per_frame(position_only: bool, add_action_dim: bool) -> int:
-    manifolds_per_frame = 1 if position_only else 2
+def _get_rbd_manifolds_per_frame(position_only: bool, add_action_dim: bool, is_bimanual: bool = False,) -> int:
+    if position_only:
+        manifolds_per_frame = 1
+    else:
+        manifolds_per_frame = 2
     manifolds_per_frame *= 2 if add_action_dim else 1
 
     return manifolds_per_frame
