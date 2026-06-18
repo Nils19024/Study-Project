@@ -1476,7 +1476,13 @@ class Demos:
                 left_pos = get_b_from_homogenous_transforms(left_obs)
                 right_pos = get_b_from_homogenous_transforms(right_obs)
 
-                return torch.cat([left_pos, right_pos], dim=-1)
+                if self.arm == "left":
+                    return left_pos
+
+                if self.arm == "right":
+                    return right_pos
+
+                return torch.cat([left_pos, right_pos], dim=2)
 
             if pos_only:
                 obs = self.get_obs_per_frame(
@@ -2678,12 +2684,22 @@ class Demos:
 
 
 class PartialFrameViewDemos(Demos):
-    def __init__(self, full_demos: Demos, frame_indeces: list[int]):
+    def __init__(self, full_demos: Demos, 
+                 frame_indeces: list[int], 
+                 arm: str | None = None,
+                 left_frame_indeces: list[int] | None = None,
+                 right_frame_indeces: list[int] | None = None):
         logger.info("Creating partial frame view of demos.", filter=False)
         self.full_demos = full_demos
         self.meta_data = full_demos.meta_data.copy()
         self.meta_data["FrameIndecies"] = frame_indeces
+        self.meta_data["Arm"] = arm
+        self.meta_data["LeftFrameIndecies"] = left_frame_indeces
+        self.meta_data["RightFrameIndecies"] = right_frame_indeces
         self.frame_indecies = frame_indeces
+        self.arm = arm
+        self.left_frame_indecies = left_frame_indeces
+        self.right_frame_indecies = right_frame_indeces
 
         self.is_bimanual = self.full_demos.is_bimanual
 
@@ -2721,7 +2737,15 @@ class PartialFrameViewDemos(Demos):
             self.ee_actions = self.full_demos.ee_actions
             self.ee_actions_quats = self.full_demos.ee_actions_quats
 
-        self.n_frames = len(frame_indeces)
+        if (
+            self.is_bimanual
+            and arm is None
+            and left_frame_indeces is not None
+            and right_frame_indeces is not None
+        ):
+            self.n_frames = len(left_frame_indeces) + len(right_frame_indeces)
+        else:
+            self.n_frames = len(frame_indeces)
         self.n_trajs = self.full_demos.n_trajs
         self.traj_lens = self.full_demos.traj_lens
         self.min_traj_len = self.full_demos.min_traj_len
@@ -2765,10 +2789,22 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def world2frames_left(self):
+        if self.left_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.world2frames_left,
+                self.left_frame_indecies,
+            )
+    
         return self._get_indexed(self.full_demos.world2frames_left)
 
     @property
     def world2frames_right(self):
+        if self.right_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.world2frames_right,
+                self.right_frame_indecies,
+            )
+        
         return self._get_indexed(self.full_demos.world2frames_right)
 
     @property
@@ -2860,16 +2896,19 @@ class PartialFrameViewDemos(Demos):
         )
 
     def _get_indexed(
-        self, data: torch.Tensor | tuple[torch.Tensor, ...]
+        self, data: torch.Tensor | tuple[torch.Tensor, ...],
+        frame_indecies: list[int] | None = None,
     ) -> torch.Tensor | tuple[torch.Tensor, ...]:
         """
         Index the full data to get the partial frame view.
         data can be a tensor in which the first dim is the frame dim, or a tuple
         of tensors (over trajectories) with the same property.
         """
-        return list_index_first_tensor_dim(data, self.frame_indecies)
+        if frame_indecies is None:
+            frame_indecies = self.frame_indecies
+        return list_index_first_tensor_dim(data, frame_indecies)
 
-    def _get_indexed_stacked(self, data: torch.Tensor):
+    def _get_indexed_stacked(self, data: torch.Tensor, frame_indecies: list[int] | None = None,):
         """
         Equivalent of _get_indexed for stacked data, eg fixed frames.
         _get_indexed assumes that data is either a tensor in which the first
@@ -2878,7 +2917,9 @@ class PartialFrameViewDemos(Demos):
         Tensors that are stacked over trajectories have the trajectory dim in
         front, so need to index at second position.
         """
-        return data[:, self.frame_indecies]
+        if frame_indecies is None:
+            frame_indecies = self.frame_indecies
+        return data[:, frame_indecies]
 
     @lru_cache
     def get_action_per_frame(
