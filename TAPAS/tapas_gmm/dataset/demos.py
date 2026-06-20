@@ -1353,7 +1353,7 @@ class Demos:
             direction = (dir_left, dir_right)
             # Take the mimium, beacause segmenting the trajectory if one of both arms is moving slow
             magnitude = tuple(
-                torch.minimum(left, right)
+                torch.stack([left, right], dim=-1)
                 for left, right in zip(mag_left, mag_right)
             )
 
@@ -1373,8 +1373,7 @@ class Demos:
         _, pos_mag = self.get_pos_action_factorization(subsampled=subsampled)
 
         if self.is_bimanual:
-            ret = tuple(p.unsqueeze(-1) for p in pos_mag)
-            return ret
+            return pos_mag
 
         if position_only:
             if type(pos_mag) is torch.Tensor:
@@ -2282,7 +2281,11 @@ class Demos:
         dbg: bool = True,
     ) -> tuple[tuple[int, ...], ...]:
         if translation_only:
-            trajs = tuple(t[..., 0] for t in trajs)
+            if self.is_bimanual:
+                trajs_left = tuple(t[:, 0] for t in trajs)
+                trajs_right = tuple(t[:, 1] for t in trajs)
+            else:
+                trajs = tuple(t[..., 0] for t in trajs)
         else:
             raise NotImplementedError
 
@@ -2292,57 +2295,104 @@ class Demos:
             fig, ax = plt.subplots(1, 1)
             for t, traj in enumerate(trajs):
                 time_dim = np.linspace(0, 1, traj.shape[0])
-                ax.plot(time_dim, traj, label=f"traj {t}", linewidth=0.5)
+
+                if self.is_bimanual:
+                    ax.plot(time_dim, traj[:, 0], label=f"traj {t} left", linewidth=0.5)
+                    ax.plot(time_dim, traj[:, 1], label=f"traj {t} right", linewidth=0.5)
+                else:
+                    ax.plot(time_dim, traj, label=f"traj {t}", linewidth=0.5)
+
                 ax.axhline(y=velocity_threshold, color="r")
             plt.legend()
             plt.show()
 
         traj_lens = tuple(t.shape[0] for t in trajs)
 
-        stop_indeces = tuple(
-            torch.argwhere(abs(t) < velocity_threshold).float().squeeze(1)
-            for t in trajs
-        )
+        if self.is_bimanual:
+            stop_indeces_left = tuple(
+                torch.argwhere(abs(t) < velocity_threshold).float().squeeze(1)
+                for t in trajs_left
+            )
+
+            stop_indeces_right = tuple(
+                torch.argwhere(abs(t) < velocity_threshold).float().squeeze(1)
+                for t in trajs_right
+            )
+        else:
+            stop_indeces = tuple(
+                torch.argwhere(abs(t) < velocity_threshold).float().squeeze(1)
+                for t in trajs
+            )
 
         # print(stop_indeces)
+        def get_segment_means(stop_indeces):
+            # split into segments if distance between indeces is larger than max_idx_dist
+            idx_diff = tuple(traj[1:] - traj[:-1] for traj in stop_indeces)
 
-        # split into segments if distance between indeces is larger than max_idx_dist
-        idx_diff = tuple(traj[1:] - traj[:-1] for traj in stop_indeces)
-
-        split_idx = tuple(
-            torch.argwhere(diff > max_idx_dist).squeeze(1) + 1 for diff in idx_diff
-        )
-
-        stop_indeces_segmented = tuple(
-            torch.tensor_split(c, idcs) for c, idcs in zip(stop_indeces, split_idx)
-        )
-
-        # for traj in stop_indeces_segmented:
-        #     print([torch.mean(c).int() for c in traj])
-
-        # filter out segments that are too short
-        stop_indeces_segmented_filtered = tuple(
-            tuple(cluster for cluster in clusters if len(cluster) >= min_cluster_len)
-            for clusters in stop_indeces_segmented
-        )
-
-        # for traj in stop_indeces_segmented:
-        #     print([torch.mean(c).int() for c in traj])
-
-        segment_mean = tuple(
-            tuple(torch.mean(c, dim=0).int() for c in cluster)
-            for cluster in stop_indeces_segmented_filtered
-        )
-
-        # filter out clusters that are too close to the start or end of the trajectory
-        segment_mean_filtered = [
-            tuple(
-                cluster
-                for cluster in clusters
-                if cluster > min_end_distance and cluster < traj_len - min_end_distance
+            split_idx = tuple(
+                torch.argwhere(diff > max_idx_dist).squeeze(1) + 1 for diff in idx_diff
             )
-            for clusters, traj_len in zip(segment_mean, traj_lens)
-        ]
+
+            stop_indeces_segmented = tuple(
+                torch.tensor_split(c, idcs) for c, idcs in zip(stop_indeces, split_idx)
+            )
+
+            # for traj in stop_indeces_segmented:
+            #     print([torch.mean(c).int() for c in traj])
+
+            # filter out segments that are too short
+            stop_indeces_segmented_filtered = tuple(
+                tuple(cluster for cluster in clusters if len(cluster) >= min_cluster_len)
+                for clusters in stop_indeces_segmented
+            )
+
+            # for traj in stop_indeces_segmented:
+            #     print([torch.mean(c).int() for c in traj])
+
+            segment_mean = tuple(
+                tuple(torch.mean(c, dim=0).int() for c in cluster)
+                for cluster in stop_indeces_segmented_filtered
+            )
+
+            # filter out clusters that are too close to the start or end of the trajectory
+            segment_mean_filtered = [
+                tuple(
+                    cluster
+                    for cluster in clusters
+                    if cluster > min_end_distance and cluster < traj_len - min_end_distance
+                )
+                for clusters, traj_len in zip(segment_mean, traj_lens)
+            ]
+
+            return segment_mean_filtered
+
+        if self.is_bimanual:
+            segment_mean_left = get_segment_means(stop_indeces_left)
+            segment_mean_right = get_segment_means(stop_indeces_right)
+            segment_mean_filtered = []
+            
+            # Group cuts that are close to each other
+            for left_cuts, right_cuts in zip(segment_mean_left, segment_mean_right):
+                cuts = tuple(sorted(list(left_cuts) + list(right_cuts)))
+
+                merged_cuts = []
+                current_group = []
+
+                for cut in cuts:
+                    if len(current_group) == 0:
+                        current_group.append(cut)
+                    elif cut - current_group[-1] <= max_idx_dist:
+                        current_group.append(cut)
+                    else:
+                        merged_cuts.append(torch.stack(current_group).float().mean().int())
+                        current_group = [cut]
+
+                if len(current_group) > 0:
+                    merged_cuts.append(torch.stack(current_group).float().mean().int())
+
+                segment_mean_filtered.append(tuple(merged_cuts))
+        else:
+            segment_mean_filtered = get_segment_means(stop_indeces)
 
         min_len = min([len(m) for m in segment_mean_filtered])
         # for i, traj in enumerate(segment_mean_filtered):
@@ -2357,7 +2407,12 @@ class Demos:
             for t, traj in enumerate(trajs):
                 traj_len = traj.shape[0]
                 time_dim = np.linspace(0, traj_len, traj_len)
-                ax[t].plot(time_dim, traj, linewidth=0.5, c="gray")
+                if self.is_bimanual:
+                    ax[t].plot(time_dim, traj[:, 0], linewidth=0.5, c="blue", label="left")
+                    ax[t].plot(time_dim, traj[:, 1], linewidth=0.5, c="green", label="right")
+                    ax[t].legend()
+                else:
+                    ax[t].plot(time_dim, traj, linewidth=0.5, c="gray")
                 ax[t].axhline(y=velocity_threshold, color="r")
                 for m in segment_mean_filtered[t]:
                     ax[t].axvline(x=m, color="g", linestyle="--")
