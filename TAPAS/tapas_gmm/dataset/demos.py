@@ -2815,6 +2815,29 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def frame_names(self):
+        if (
+            self.is_bimanual
+            and self.arm is None
+            and self.left_frame_indecies is not None
+            and self.right_frame_indecies is not None
+        ):
+            left_names = tuple(
+                "left " + self.full_demos.frame_names[i]
+                for i in self.left_frame_indecies
+            )
+            right_names = tuple(
+                "right " + self.full_demos.frame_names[i]
+                for i in self.right_frame_indecies
+            )
+
+            return left_names + right_names
+
+        if self.is_bimanual and self.arm is not None:
+            return tuple(
+                self.arm + " " + self.full_demos.frame_names[i]
+                for i in self.frame_indecies
+            )
+
         return tuple(self.full_demos.frame_names[i] for i in self.frame_indecies)
 
     # NOTE: not needed, bcs get_actions_world and get_quat_actions_world are overwritten
