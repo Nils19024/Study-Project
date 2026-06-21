@@ -1403,6 +1403,17 @@ class Demos:
     def get_gripper_action(
         self, subsampled: bool = False
     ) -> torch.Tensor | tuple[torch.Tensor]:
+        if self.is_bimanual:
+            if subsampled:
+                left = self.stacked_gripper_actions_left.unsqueeze(-1)
+                right = self.stacked_gripper_actions_right.unsqueeze(-1)
+                return torch.cat((left, right), dim=-1)
+
+            return tuple(
+                torch.stack((left, right), dim=-1)
+                for left, right in zip(self.gripper_actions_left, self.gripper_actions_right)
+            )
+
         return self.stacked_gripper_actions if subsampled else self.gripper_actions
 
     def get_gripper_state(
@@ -1654,7 +1665,10 @@ class Demos:
                 obs = cat(obs, dx_mag, dim=-1)
 
             if add_gripper_action:
-                dx_grasp = unsqueeze(self.get_gripper_action(subsampled=subsampled), -1)
+                dx_grasp = self.get_gripper_action(subsampled=subsampled)
+
+                if not self.is_bimanual:
+                    dx_grasp = unsqueeze(dx_grasp, -1)
 
                 obs = cat(obs, dx_grasp, dim=-1)
 
@@ -1775,7 +1789,10 @@ class Demos:
             obs = cat(obs, dx_mag, dim=-1)
 
         if add_gripper_action:
-            dx_grasp = unsqueeze(self.get_gripper_action(subsampled=False), -1)
+            dx_grasp = self.get_gripper_action(subsampled=False)
+
+            if not self.is_bimanual:
+                dx_grasp = unsqueeze(dx_grasp, -1)
             obs = cat(obs, dx_grasp, dim=-1)
 
         if numpy:

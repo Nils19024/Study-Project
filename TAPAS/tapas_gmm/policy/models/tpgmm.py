@@ -311,6 +311,16 @@ class TPGMM:
     def add_gripper_action(self) -> bool:
         return self.config.add_gripper_action
 
+    @property
+    def n_gripper_dims(self) -> int:
+        if not self.config.add_gripper_action:
+            return 0
+
+        if self._demos is not None and self._demos.is_bimanual:
+            return 2
+
+        return 1
+
     @cached_property
     def _sigma_dim(self) -> int:
         assert self._model_check()
@@ -325,7 +335,7 @@ class TPGMM:
         if not self.config.action_with_magnitude and not self.config.add_gripper_action:
             return self.config.reg_diag
         else:
-            n_gripper_dims = int(self.config.add_gripper_action)
+            n_gripper_dims = self.n_gripper_dims
             n_mag_dims = int(self.config.action_with_magnitude) * (
                 1 + int(1 - self.config.position_only)
             )
@@ -372,7 +382,7 @@ class TPGMM:
         if not self.config.action_with_magnitude and not self.config.add_gripper_action:
             return self.config.reg_diag
         else:
-            n_gripper_dims = int(self.config.add_gripper_action)
+            n_gripper_dims = self.n_gripper_dims
             n_mag_dims = int(self.config.action_with_magnitude) * (
                 1 + int(1 - self.config.position_only)
             )
@@ -412,7 +422,7 @@ class TPGMM:
         if not self.config.action_with_magnitude and not self.config.add_gripper_action:
             return self.config.reg_em_finish_diag
         else:
-            n_gripper_dims = int(self.config.add_gripper_action)
+            n_gripper_dims = self.n_gripper_dims
             n_mag_dims = int(self.config.action_with_magnitude) * (
                 1 + int(1 - self.config.position_only)
             )
@@ -605,7 +615,10 @@ class TPGMM:
         Manifold of the gripper action. None if not configured.
         """
         if self.config.add_gripper_action:
-            return Manifold_R1
+            if self.n_gripper_dims == 1:
+                return Manifold_R1
+            elif self.n_gripper_dims == 2:
+                return Manifold_R1 * Manifold_R1
         else:
             return None
 
@@ -782,7 +795,7 @@ class TPGMM:
             else 0
         )
         n_global_dims *= 2 if not self.config.position_only else 1
-        n_global_dims += 1 if self.config.add_gripper_action else 0
+        n_global_dims += self.n_gripper_dims
 
         return n_global_dims
 
@@ -2318,25 +2331,32 @@ class TPGMM:
                 global_dim_idx += 1
 
             if self.config.add_gripper_action:
-                grip_mag_mu, grip_mag_sigma = self._get_component_mu_sigma_global(
-                    mu,
-                    mu_tan,
-                    sigma,
-                    global_dim_idx + a_idx_tan,
-                    time_based=True,  # Can't do 3D plots for R1
-                    xdx_based=xdx_based,
-                    mu_on_tangent=True,
-                )
-                plot_data.append(
-                    SingleDimPlotData(
-                        data=tangent_global_action_data[..., global_dim_idx],
-                        name="gripper action",
-                        per_frame=False,
-                        manifold=Manifold_R1,
-                        mu=grip_mag_mu,
-                        sigma=grip_mag_sigma,
+                if self.n_gripper_dims == 2:
+                    gripper_names = ["left gripper action", "right gripper action"]
+                else:
+                    gripper_names = ["gripper action"]
+
+                for gripper_name in gripper_names:
+                    grip_mag_mu, grip_mag_sigma = self._get_component_mu_sigma_global(
+                        mu,
+                        mu_tan,
+                        sigma,
+                        global_dim_idx + a_idx_tan,
+                        time_based=True,
+                        xdx_based=xdx_based,
+                        mu_on_tangent=True,
                     )
-                )
+                    plot_data.append(
+                        SingleDimPlotData(
+                            data=tangent_global_action_data[..., global_dim_idx],
+                            name=gripper_name,
+                            per_frame=False,
+                            manifold=Manifold_R1,
+                            mu=grip_mag_mu,
+                            sigma=grip_mag_sigma,
+                        )
+                    )
+                    global_dim_idx += 1
 
         multiplot_data = TPGMMPlotData(
             frame_names=self._demos.frame_names,
