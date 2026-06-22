@@ -154,7 +154,7 @@ class BCDataset(Dataset):
             scene_obs_end = scene_obs_start + self.fragment_length
             scene_obs_start = max(0, scene_obs_start)
             scene_obs_end = min(self._unpadded_traj_lens[traj_idx], scene_obs_end)
-            scene_fragment_length = scene_obs_end - scene_obs_start + 1
+            scene_fragment_length = scene_obs_end - scene_obs_start
 
         needed_post_padding = (
             self.fragment_length - scene_fragment_length - needed_pre_padding
