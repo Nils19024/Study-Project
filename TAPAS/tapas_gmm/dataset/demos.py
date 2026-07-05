@@ -926,18 +926,50 @@ class Demos:
     @property
     def _frame_quats2world_fixed(self):
         return torch.stack([f2w[:, 0:1, :] for f2w in self.frame_quats])
+    
+    @property
+    def _frame_quats2world_fixed_left(self):
+        return torch.stack([f2w[:, 0:1, :] for f2w in self.frame_quats_left])
+
+    @property
+    def _frame_quats2world_fixed_right(self):
+        return torch.stack([f2w[:, 0:1, :] for f2w in self.frame_quats_right])
 
     @property
     def _frame_quats2world(self):
         return self.frame_quats
 
     @property
+    def _frame_quats2world_left(self):
+        return self.frame_quats_left
+
+    @property
+    def _frame_quats2world_right(self):
+        return self.frame_quats_right
+
+    @property
     def _world_quats2frame(self):
         return conjugate_quat(self._frame_quats2world)
+    
+    @property
+    def _world_quats2frame_left(self):
+        return conjugate_quat(self._frame_quats2world_left)
+
+    @property
+    def _world_quats2frame_right(self):
+        return conjugate_quat(self._frame_quats2world_right)
 
     @property
     def _world_quats2frame_fixed(self):
         return conjugate_quat(self._frame_quats2world_fixed)
+
+    @property
+    def _world_quats2frame_fixed_left(self):
+        return conjugate_quat(self._frame_quats2world_fixed_left)
+
+    @property
+    def _world_quats2frame_fixed_right(self):
+        return conjugate_quat(self._frame_quats2world_fixed_right)
 
     @property
     def _frame_quats2world_velocities(self):
@@ -1037,9 +1069,15 @@ class Demos:
             # Can't apply the same directly to get_quat_obs_per_frame because
             # it uses the list_or_tensor decorator. Need to properly fix this.
             if type(rot) is list:
-                rot = [r.permute(1, 0, 2) for r in rot]
+                if rot[0].dim() == 4:
+                    rot = [r.permute(0, 2, 1, 3) for r in rot]
+                else:
+                    rot = [r.permute(1, 0, 2) for r in rot]
             elif type(rot) is tuple:
-                rot = tuple(r.permute(1, 0, 2) for r in rot)
+                if rot[0].dim() == 4:
+                    rot = tuple(r.permute(0, 2, 1, 3) for r in rot)
+                else:
+                    rot = tuple(r.permute(1, 0, 2) for r in rot)
             else:
                 rot = rot.permute(0, 2, 1, 3)
 
@@ -1159,7 +1197,34 @@ class Demos:
         torch.Tensor or tuple[torch.Tensor]
             Analog to get_obs_per_frame, but rotation only.
         """
+        if self.is_bimanual:
+            transforms_left = (
+                self._world_quats2frame_fixed_left
+                if fixed_frames
+                else self._world_quats2frame_left
+            )
+            transforms_right = (
+                self._world_quats2frame_fixed_right
+                if fixed_frames
+                else self._world_quats2frame_right
+            )
 
+            if subsampled and not fixed_frames:
+                transforms_left = self._subsample(transforms_left)
+                transforms_right = self._subsample(transforms_right)
+
+            poses_left = self.stacked_ee_quats_left if subsampled else self.left_ee_quats
+            poses_right = self.stacked_ee_quats_right if subsampled else self.right_ee_quats
+
+            quats_left = get_quat_per_frame(transforms_left, poses_left)
+            quats_right = get_quat_per_frame(transforms_right, poses_right)
+
+            if skip_quat_dim is not None:
+                quats_left = remove_quaternion_dim(quats_left, skip_quat_dim)
+                quats_right = remove_quaternion_dim(quats_right, skip_quat_dim)
+
+            return quats_left, quats_right
+        
         transforms = (
             self._world_quats2frame_fixed if fixed_frames else self._world_quats2frame
         )
@@ -1474,26 +1539,25 @@ class Demos:
         @lru_cache  # Nested function to cache result independtly of flat-arg.
         def _get_x_per_frame(self, subsampled=True, fixed_frames=False):
             if self.is_bimanual:
-                left_obs = get_obs_per_frame(
-                    self.stacked_world2frames_left,
-                    self.stacked_ee_poses_left,
-                )
-                right_obs = get_obs_per_frame(
-                    self.stacked_world2frames_right,
-                    self.stacked_ee_poses_right,
-                )
-
-                left_pos = get_b_from_homogenous_transforms(left_obs)
-                right_pos = get_b_from_homogenous_transforms(right_obs)
+                if pos_only:
+                    obs_left, obs_right = self.get_obs_per_frame(
+                        subsampled, fixed_frames, False, skip_quat_dim
+                    )
+                    obs_left = get_b_from_homogenous_transforms(obs_left)
+                    obs_right = get_b_from_homogenous_transforms(obs_right)
+                else:
+                    obs_left, obs_right = self.get_obs_per_frame(
+                        subsampled, fixed_frames, as_quaternion, skip_quat_dim
+                    )
 
                 if self.arm == "left":
-                    return left_pos
+                    return obs_left
 
                 if self.arm == "right":
-                    return right_pos
+                    return obs_right
 
-                return torch.cat([left_pos, right_pos], dim=2)
-
+                return torch.cat([obs_left, obs_right], dim=2)
+            
             if pos_only:
                 obs = self.get_obs_per_frame(
                     subsampled, fixed_frames, False, skip_quat_dim
@@ -2928,11 +2992,17 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def frame_quats_left(self):
-        return self._get_indexed(self.full_demos.frame_quats_left)
+        return self._get_indexed(
+            self.full_demos.frame_quats_left, 
+            self.left_frame_indecies,
+        )
 
     @property
     def frame_quats_right(self):
-        return self._get_indexed(self.full_demos.frame_quats_right)
+        return self._get_indexed(
+            self.full_demos.frame_quats_right, 
+            self.right_frame_indecies,
+        )
 
     @property
     def _world2frames_fixed(self):

@@ -561,6 +561,8 @@ class TPGMM:
 
         if self.config.position_only:
             m_state = Manifold_R3
+        else:
+            m_state = Manifold_R3 * Manifold_Quat
         
         m_action = (
             Manifold_S2
