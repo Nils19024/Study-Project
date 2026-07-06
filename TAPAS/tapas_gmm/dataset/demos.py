@@ -190,14 +190,27 @@ def get_frames_from_obs(
     if add_world_frame:
         object_poses = [identity_7_pose] + object_poses
 
-    if add_init_ee_pose_as_frame:
-        object_poses = [obs.ee_pose] + object_poses
+    if add_init_ee_pose_as_frame and obs.ee_pose.shape[0] == 14:
+        left_object_poses = [obs.ee_pose[:7]] + object_poses
+        right_object_poses = [obs.ee_pose[7:]] + object_poses
+        pose_tensor = (
+            torch.stack(left_object_poses),
+            torch.stack(right_object_poses),
+        )
+    else:
+        if add_init_ee_pose_as_frame:
+            object_poses = [obs.ee_pose] + object_poses
 
-    pose_tensor = torch.stack(object_poses)
+        pose_tensor = torch.stack(object_poses)
 
-    frame_quats = pose_tensor[..., 3:]
-    frame_b = pose_tensor[..., :3]
-    frame_A = quaternion_to_matrix(frame_quats)
+    if type(pose_tensor) is tuple:
+        frame_quats = tuple(p[..., 3:] for p in pose_tensor)
+        frame_b = tuple(p[..., :3] for p in pose_tensor)
+        frame_A = tuple(quaternion_to_matrix(q) for q in frame_quats)
+    else:
+        frame_quats = pose_tensor[..., 3:]
+        frame_b = pose_tensor[..., :3]
+        frame_A = quaternion_to_matrix(frame_quats)
 
     if add_action_dim:
         logger.warning("Assuming zero frame velocity in Adapter. Should be fixed.")
@@ -206,6 +219,17 @@ def get_frames_from_obs(
         frame_A = torch.kron(torch.eye(2), frame_A)
 
         frame_b = torch.cat((frame_b, torch.zeros_like(frame_b)), dim=-1)
+
+    if type(frame_A) is tuple:
+        frame_hom = tuple(
+            get_frame_transform_flat(A, b, invert=False)
+            for A, b in zip(frame_A, frame_b)
+        )
+
+        return (
+            tuple(f.numpy() for f in frame_hom),
+            tuple(q.numpy() for q in frame_quats),                                            
+        )
 
     frame_hom = get_frame_transform_flat(frame_A, frame_b, invert=False)
 

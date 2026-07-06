@@ -242,7 +242,10 @@ class GMMPolicy(Policy):
             info["done"] = False
 
         if self.config.binary_gripper_action:
-            action[-1] = self._binary_gripper_action(action[-1])
+            if action.shape[0] == 16:
+                action[-2:] = self._binary_gripper_action(action[-2:])
+            else:
+                action[-1] = self._binary_gripper_action(action[-1])
 
         return action, info
 
@@ -364,8 +367,11 @@ class GMMPolicy(Policy):
             prediction_raw = prediction_raw[::-1]
 
         stacked_pred = np.stack(prediction_raw)
+
+        ee_dim = 14 if obs.ee_pose.shape[0] == 14 else 7
+
         raw_traj = RobotTrajectory.from_np(
-            ee=stacked_pred[:, :7], gripper=stacked_pred[:, 7:]
+            ee=stacked_pred[:, :ee_dim], gripper=stacked_pred[:, ee_dim:]
         )
 
         # if self.config.invert_prediction_batch:
@@ -452,14 +458,19 @@ class GMMPolicy(Policy):
         ee_pose = obs.ee_pose.numpy()
         input_data = np.clip(self._t_curr, 0, 1) if self._time_based else ee_pose
 
+        extra_args = {}
+
+        if ee_pose.shape[0] == 14:
+            extra_args["per_segment"] = True
+
         prediction, extra = self.model.online_predict(
             input_data=input_data,
             time_based=self._time_based,
             frame_trans=frame_trans,
             frame_quats=frame_quats,
             local_marginals=self._local_marginals,
+            **extra_args,
         )
-
         if postprocess:
             action = self._postprocess_prediction(ee_pose, prediction)
         else:
@@ -482,6 +493,9 @@ class GMMPolicy(Policy):
             )
 
     def _should_time_step(self, ee_pose: np.ndarray, always_step: bool = False):
+        if self._pos_lag_thresh is None:
+            return True
+
         if self._last_prediction is not None and not always_step:
             ee_f_b, ee_quat = ee_pose[:3], ee_pose[3:]
             pos_lag = ee_f_b - self._last_prediction[:3]
@@ -547,19 +561,25 @@ class GMMPolicy(Policy):
         Should skip this step in batch mode.
         """
         # Split gripper and EE part
+        is_bimanual = ee_pose.shape[0] == 14
+        n_grippers = 2 if is_bimanual else 1
+
         if self._model_contains_gripper_action:
-            gripper_action = prediction[-1:]
-            ee_prediction = prediction[:-1]
+            gripper_action = prediction[-n_grippers:]
+            ee_prediction = prediction[:-n_grippers]
         else:
-            gripper_action = -np.ones((1))
+            gripper_action = -np.ones((n_grippers))
             ee_prediction = prediction
 
-        state_dim = 7 if self._model_contains_rotation else 3
-        action_dim = (
+        single_state_dim = 7 if self._model_contains_rotation else 3
+        single_action_dim = (
             9
             if self._model_factorizes_action
             else 7 if self._model_contains_rotation else 3
         )
+
+        state_dim = single_state_dim * n_grippers
+        action_dim = single_action_dim * n_grippers
 
         # Split EE part into state and action if needed
         if self._model_is_txdx and self._time_based:
@@ -612,12 +632,32 @@ class GMMPolicy(Policy):
                 )
 
         else:  # prediction is absolute pose -> get finite difference
-            pos_delta, rot_delta = self._pose_to_pose_delta(ee_pose, ee_prediction)
+            if is_bimanual:
+                left_pos_delta, left_rot_delta = self._pose_to_pose_delta(
+                    ee_pose[:single_state_dim],
+                    ee_prediction[:single_state_dim],
+                )
+                right_pos_delta, right_rot_delta = self._pose_to_pose_delta(
+                    ee_pose[single_state_dim:state_dim],
+                    ee_prediction[single_state_dim:state_dim],
+                )
 
-        if not self._model_contains_rotation:
-            rot_delta = zero_quat
+                pos_delta = np.concatenate([left_pos_delta, right_pos_delta])
+                rot_delta = np.concatenate([left_rot_delta, right_rot_delta])
+            else:
+                pos_delta, rot_delta = self._pose_to_pose_delta(ee_pose, ee_prediction)
 
-        ee_action = np.concatenate([pos_delta, rot_delta])
+        if is_bimanual:
+            ee_action = np.concatenate(
+                [
+                    left_pos_delta,
+                    left_rot_delta,
+                    right_pos_delta,
+                    right_rot_delta,
+                ]
+            )
+        else:
+            ee_action = np.concatenate([pos_delta, rot_delta])
 
         return np.concatenate([ee_action, gripper_action])
 
