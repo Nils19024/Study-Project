@@ -3858,19 +3858,67 @@ class AutoTPGMM(TPGMM):
         trans_marginals = []
 
         for i, margs in enumerate(local_marginals):
-            selected_trans = [frame_trans[j] for j in self.segment_frames[i]]
-            selected_quats = [frame_quats[j] for j in self.segment_frames[i]]
+            if self._demos.is_bimanual:
+                frame_data = self.segment_frame_views[i]
 
-            joint_model, trans_margs = self.segment_gmms[i].make_joint_model(
-                frame_trans=selected_trans,
-                frame_quats=selected_quats,
-                time_based=time_based,
-                local_marginals=margs,
-                heal_time_variance=heal_time_variance,
-                use_riemann=self.use_riemann,
-            )
-            joint_models.append(joint_model)
-            trans_marginals.append(trans_margs)
+                left_idcs = frame_data.left_frame_indecies or []
+                right_idcs = frame_data.right_frame_indecies or []
+
+                selected_left_trans = []
+                selected_left_quats = []
+                selected_right_trans = []
+                selected_right_quats = []
+
+                for j in left_idcs:
+                    selected_left_trans.append(frame_trans[0][j])
+                    selected_left_quats.append(frame_quats[0][j])
+
+                for j in right_idcs:
+                    selected_right_trans.append(frame_trans[1][j])
+                    selected_right_quats.append(frame_quats[1][j])
+
+                n_left = len(left_idcs)
+                left_margs = margs[:n_left]
+                right_margs = margs[n_left:]
+
+                left_joint_model, left_trans_margs = self.segment_gmms[i].make_joint_model(
+                    frame_trans=selected_left_trans,
+                    frame_quats=selected_left_quats,
+                    time_based=time_based,
+                    local_marginals=left_margs,
+                    heal_time_variance=heal_time_variance,
+                    use_riemann=self.use_riemann,
+                )
+
+                right_joint_model, right_trans_margs = self.segment_gmms[i].make_joint_model(
+                    frame_trans=selected_right_trans,
+                    frame_quats=selected_right_quats,
+                    time_based=time_based,
+                    local_marginals=right_margs,
+                    heal_time_variance=heal_time_variance,
+                    use_riemann=self.use_riemann,
+                )
+
+                joint_models.append((left_joint_model, right_joint_model))
+                trans_marginals.append((left_trans_margs, right_trans_margs))
+
+            else:
+                selected_trans = [frame_trans[j] for j in self.segment_frames[i]]
+                selected_quats = [frame_quats[j] for j in self.segment_frames[i]]
+
+                joint_model, trans_margs = self.segment_gmms[i].make_joint_model(
+                    frame_trans=selected_trans,
+                    frame_quats=selected_quats,
+                    time_based=time_based,
+                    local_marginals=margs,
+                    heal_time_variance=heal_time_variance,
+                    use_riemann=self.use_riemann,
+                )
+                joint_models.append(joint_model)
+                trans_marginals.append(trans_margs)
+
+        if self._demos.is_bimanual:
+            return tuple(joint_models), tuple(trans_marginals)
 
         trans_marg_dict = dict()
         for f_list, m_list in zip(self.segment_frames, trans_marginals):
@@ -3900,15 +3948,57 @@ class AutoTPGMM(TPGMM):
             raise NotImplementedError("No state-based segment-wise prediction.")
 
         idx = self._online_active_segment
+        joint_model = self._online_joint_models[idx]
 
         if strategy is ReconstructionStrategy.GMR:
-            prediction, extras = self.segment_gmms[idx]._online_gmr(
-                input_data=input_data,
-                joint_model=self._online_joint_models[idx],
-                fix_frames=self._fix_frames,
-                time_based=True,
-                first_step=self._online_first_step,
-            )
+            if isinstance(joint_model, tuple):
+                joint_model_left, joint_model_right = joint_model
+
+                prediction_left, extras_left = self.segment_gmms[idx]._online_gmr(
+                    input_data=input_data,
+                    joint_model=joint_model_left,
+                    fix_frames=self._fix_frames,
+                    time_based=True,
+                    first_step=self._online_first_step,
+                )
+
+                prediction_right, extras_right = self.segment_gmms[idx]._online_gmr(
+                    input_data=input_data,
+                    joint_model=joint_model_right,
+                    fix_frames=self._fix_frames,
+                    time_based=True,
+                    first_step=self._online_first_step,
+                )
+
+                n_gripper_dims = self.segment_gmms[idx].n_gripper_dims
+
+                prediction_left_ee = prediction_left[:-n_gripper_dims]
+                prediction_right_ee = prediction_right[:-n_gripper_dims]
+
+                prediction_left_gripper = prediction_left[-n_gripper_dims:]
+                prediction_right_gripper = prediction_right[-n_gripper_dims:]
+
+                prediction_gripper = np.array([
+                    prediction_left_gripper[0],
+                    prediction_right_gripper[1],
+                ])
+
+                prediction = np.concatenate(
+                    (prediction_left_ee, prediction_right_ee, prediction_gripper)
+                )
+
+                extras = {
+                    "left": extras_left,
+                    "right": extras_right,
+                }
+            else:
+                prediction, extras = self.segment_gmms[idx]._online_gmr(
+                    input_data=input_data,
+                    joint_model=joint_model,
+                    fix_frames=self._fix_frames,
+                    time_based=True,
+                    first_step=self._online_first_step,
+                )
         else:
             raise NotImplementedError
 

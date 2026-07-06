@@ -380,7 +380,39 @@ class RLBenchEnvironment(BaseEnvironment):
         RuntimeError
             If raised by the environment.
         """
-        if action.shape[0] == 14:
+        if action.shape[0] == 16:
+            left_action = np.concatenate([action[:7], action[14:15]])
+            right_action = np.concatenate([action[7:14], action[15:16]])
+
+            if postprocess:
+                left_action = self.postprocess_action(
+                    left_action,
+                    scale_action=scale_action,
+                    delay_gripper=delay_gripper,
+                    prediction_is_quat=True,
+                )
+
+                right_action = self.postprocess_action(
+                    right_action,
+                    scale_action=scale_action,
+                    delay_gripper=delay_gripper,
+                    prediction_is_quat=True,
+                )
+            
+            right_gripper = float(right_action[7] > 0.0)
+            left_gripper = float(left_action[7] > 0.0)
+
+            action_delayed = np.concatenate([
+                right_action[:7],
+                [right_gripper],
+                [0.0],
+
+                left_action[:7],
+                [left_gripper],
+                [0.0],
+            ])
+
+        elif action.shape[0] == 14:
             left_action = action[:7]
             right_action = action[7:]
 
