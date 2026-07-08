@@ -290,10 +290,15 @@ class RLBenchEnvironment(BaseEnvironment):
 
         self.env.launch()
 
-        self.task_env: TaskEnvironment = self.env.get_task(task_switch[config.task])
+        self._task_class = task_switch[config.task]
+        self.task_env: TaskEnvironment = self.env.get_task(self._task_class)
 
     def close(self):
         self.env.shutdown()
+
+    def _reload_task_env(self):
+        self.task_env = self.env.get_task(self._task_class)
+        self.setup_camera_controls(self.config)
 
     def _get_robot_base_pose(self) -> np.ndarray:
         raw = self.env._robot.arm.get_pose()
@@ -325,7 +330,16 @@ class RLBenchEnvironment(BaseEnvironment):
     def reset(self):
         super().reset()
 
-        descriptions, obs = self.task_env.reset()
+        last_error = None
+        for _ in range(10):
+            try:
+                descriptions, obs = self.task_env.reset()
+                break
+            except RuntimeError as e:
+                last_error = e
+                self._reload_task_env()
+        else:
+            raise last_error
 
         if self.camera_pose:
             self.set_camera_pose(self.camera_pose)
