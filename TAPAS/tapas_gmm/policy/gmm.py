@@ -497,20 +497,72 @@ class GMMPolicy(Policy):
             return True
 
         if self._last_prediction is not None and not always_step:
-            ee_f_b, ee_quat = ee_pose[:3], ee_pose[3:]
-            pos_lag = ee_f_b - self._last_prediction[:3]
-            pos_change = self._last_pose[:3] - ee_f_b
+            is_bimanual = ee_pose.shape[0] == 14
 
-            if self._model_contains_rotation:
-                quat_lag = compute_angle_between_quaternions(
-                    ee_quat, self._last_prediction[3:7]
-                )
-                quat_change = compute_angle_between_quaternions(
-                    self._last_pose[3:], ee_quat
-                )
+            if is_bimanual:
+                prediction = self._last_prediction
+                if self._model_contains_gripper_action:
+                    prediction = prediction[:-2]
+
+                single_prediction_dim = 7 if self._model_contains_rotation else 3
+                prediction = prediction[: 2 * single_prediction_dim]
+
+                pos_lag = []
+                pos_change = []
+                quat_lag = []
+                quat_change = []
+
+                for i in range(2):
+                    pose_start = i * 7
+                    pred_start = i * single_prediction_dim
+
+                    ee_f_b = ee_pose[pose_start : pose_start + 3]
+                    pos_lag.append(
+                        ee_f_b - prediction[pred_start : pred_start + 3]
+                    )
+                    pos_change.append(
+                        self._last_pose[pose_start : pose_start + 3] - ee_f_b
+                    )
+
+                    if self._model_contains_rotation:
+                        ee_quat = ee_pose[pose_start + 3 : pose_start + 7]
+                        quat_lag.append(
+                            compute_angle_between_quaternions(
+                                ee_quat,
+                                prediction[pred_start + 3 : pred_start + 7],
+                            )
+                        )
+                        quat_change.append(
+                            compute_angle_between_quaternions(
+                                self._last_pose[pose_start + 3 : pose_start + 7],
+                                ee_quat,
+                            )
+                        )
+
+                pos_lag = np.stack(pos_lag)
+                pos_change = np.stack(pos_change)
+                pos_lag_norm = np.linalg.norm(pos_lag, axis=1).max()
+                pos_change_norm = np.linalg.norm(pos_change, axis=1).max()
+                quat_lag = max(quat_lag) if quat_lag else None
+                quat_change = max(quat_change) if quat_change else None
+
             else:
-                quat_lag = None
-                quat_change = None
+                ee_f_b, ee_quat = ee_pose[:3], ee_pose[3:]
+                pos_lag = ee_f_b - self._last_prediction[:3]
+                pos_change = self._last_pose[:3] - ee_f_b
+                pos_lag_norm = np.linalg.norm(pos_lag)
+                pos_change_norm = np.linalg.norm(pos_change)
+
+                if self._model_contains_rotation:
+                    quat_lag = compute_angle_between_quaternions(
+                        ee_quat, self._last_prediction[3:7]
+                    )
+                    quat_change = compute_angle_between_quaternions(
+                        self._last_pose[3:], ee_quat
+                    )
+                else:
+                    quat_lag = None
+                    quat_change = None
 
             logger.info(
                 f"Pos lag: {pos_lag}, quat lag: {quat_lag}, "
@@ -518,14 +570,17 @@ class GMMPolicy(Policy):
                 filter=False,
             )
         else:
-            pos_lag = None
+            pos_lag_norm = None
+            pos_change_norm = None
+            quat_lag = None
+            quat_change = None
 
         action_succes = (
             not always_step
             and self._last_prediction is not None
             and (
                 self._pos_lag_thresh is None
-                or np.linalg.norm(pos_lag) < self._pos_lag_thresh
+                or pos_lag_norm < self._pos_lag_thresh
             )
             and (quat_lag is None or (quat_lag < self._quat_change_thresh))
         )
@@ -535,7 +590,7 @@ class GMMPolicy(Policy):
             and self._last_pose is not None
             and (
                 self._pos_change_thresh is None
-                or np.linalg.norm(pos_change) < self._pos_change_thresh
+                or pos_change_norm < self._pos_change_thresh
             )
             and (quat_change is None or (quat_change < self._quat_change_thresh))
         )

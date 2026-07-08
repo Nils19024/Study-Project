@@ -183,21 +183,32 @@ def get_frames_from_obs(
             p.squeeze(0) for p in tp_from_keypoints(obs.kp.unsqueeze(0), indeces)
         ]
     else:
-        object_poses = [v for _, v in obs.object_poses.items()]
+        object_poses = [v for _, v in sorted(obs.object_poses.items())]
         if indeces is not None:
             object_poses = [object_poses[i] for i in indeces]
 
-    if add_world_frame:
-        object_poses = [identity_7_pose] + object_poses
-
     if add_init_ee_pose_as_frame and obs.ee_pose.shape[0] == 14:
-        left_object_poses = [obs.ee_pose[:7]] + object_poses
-        right_object_poses = [obs.ee_pose[7:]] + object_poses
+        left_object_poses = []
+        right_object_poses = []
+
+        if add_world_frame:
+            left_object_poses.append(identity_7_pose)
+            right_object_poses.append(identity_7_pose)
+
+        left_object_poses.append(obs.ee_pose[:7])
+        right_object_poses.append(obs.ee_pose[7:])
+
+        left_object_poses += object_poses
+        right_object_poses += object_poses
+
         pose_tensor = (
             torch.stack(left_object_poses),
             torch.stack(right_object_poses),
         )
     else:
+        if add_world_frame:
+            object_poses = [identity_7_pose] + object_poses
+
         if add_init_ee_pose_as_frame:
             object_poses = [obs.ee_pose] + object_poses
 
@@ -314,7 +325,7 @@ class Demos:
             (
                 tp_from_keypoints(o.kp.squeeze(1), kp_indeces)
                 if frames_from_keypoints
-                else [v for _, v in o.object_poses.items()]
+                else [v for _, v in sorted(o.object_poses.items())]
             )
             for o in trajectories
         )
@@ -595,7 +606,7 @@ class Demos:
         self.frame_names += (
             [f"kp {i}" for i in range(n_obj_frames)]
             if frames_from_keypoints
-            else [k for k, _ in trajectories[0].object_poses.items()]
+            else [k for k, _ in sorted(trajectories[0].object_poses.items())]
         )
         self.frame_names = tuple(self.frame_names)
 
@@ -2848,7 +2859,11 @@ class PartialFrameViewDemos(Demos):
                  frame_indeces: list[int], 
                  arm: str | None = None,
                  left_frame_indeces: list[int] | None = None,
-                 right_frame_indeces: list[int] | None = None):
+                 right_frame_indeces: list[int] | None = None,
+                 left_pos_frame_indeces: list[int] | None = None,
+                 left_rot_frame_indeces: list[int] | None = None,
+                 right_pos_frame_indeces: list[int] | None = None,
+                 right_rot_frame_indeces: list[int] | None = None):
         logger.info("Creating partial frame view of demos.", filter=False)
         self.full_demos = full_demos
         self.meta_data = full_demos.meta_data.copy()
@@ -2860,6 +2875,10 @@ class PartialFrameViewDemos(Demos):
         self.arm = arm
         self.left_frame_indecies = left_frame_indeces
         self.right_frame_indecies = right_frame_indeces
+        self.left_pos_frame_indecies = left_pos_frame_indeces
+        self.left_rot_frame_indecies = left_rot_frame_indeces
+        self.right_pos_frame_indecies = right_pos_frame_indeces
+        self.right_rot_frame_indecies = right_rot_frame_indeces
 
         self.is_bimanual = self.full_demos.is_bimanual
 
@@ -2900,6 +2919,13 @@ class PartialFrameViewDemos(Demos):
         if (
             self.is_bimanual
             and arm is None
+            and left_pos_frame_indeces is not None
+            and right_pos_frame_indeces is not None
+        ):
+            self.n_frames = len(left_pos_frame_indeces) + len(right_pos_frame_indeces)
+        elif (
+            self.is_bimanual
+            and arm is None
             and left_frame_indeces is not None
             and right_frame_indeces is not None
         ):
@@ -2920,6 +2946,33 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def frame_names(self):
+        if (
+            self.is_bimanual
+            and self.arm is None
+            and self.left_pos_frame_indecies is not None
+            and self.left_rot_frame_indecies is not None
+            and self.right_pos_frame_indecies is not None
+            and self.right_rot_frame_indecies is not None
+        ):
+            left_names = tuple(
+                "left "
+                + self.full_demos.frame_names[p]
+                + " pos / "
+                + self.full_demos.frame_names[r]
+                + " rot"
+                for p, r in zip(self.left_pos_frame_indecies, self.left_rot_frame_indecies)
+            )
+            right_names = tuple(
+                "right "
+                + self.full_demos.frame_names[p]
+                + " pos / "
+                + self.full_demos.frame_names[r]
+                + " rot"
+                for p, r in zip(self.right_pos_frame_indecies, self.right_rot_frame_indecies)
+            )
+
+            return left_names + right_names
+
         if (
             self.is_bimanual
             and self.arm is None
@@ -2972,6 +3025,12 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def world2frames_left(self):
+        if self.left_pos_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.world2frames_left,
+                self.left_pos_frame_indecies,
+            )
+
         if self.left_frame_indecies is not None:
             return self._get_indexed(
                 self.full_demos.world2frames_left,
@@ -2982,6 +3041,12 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def world2frames_right(self):
+        if self.right_pos_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.world2frames_right,
+                self.right_pos_frame_indecies,
+            )
+
         if self.right_frame_indecies is not None:
             return self._get_indexed(
                 self.full_demos.world2frames_right,
@@ -3000,10 +3065,22 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def frames2world_left(self):
+        if self.left_pos_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.frames2world_left,
+                self.left_pos_frame_indecies,
+            )
+
         return self._get_indexed(self.full_demos.frames2world_left)
 
     @property
     def frames2world_right(self):
+        if self.right_pos_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.frames2world_right,
+                self.right_pos_frame_indecies,
+            )
+
         return self._get_indexed(self.full_demos.frames2world_right)
 
     @property
@@ -3016,6 +3093,12 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def frame_quats_left(self):
+        if self.left_rot_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.frame_quats_left,
+                self.left_rot_frame_indecies,
+            )
+
         return self._get_indexed(
             self.full_demos.frame_quats_left, 
             self.left_frame_indecies,
@@ -3023,6 +3106,12 @@ class PartialFrameViewDemos(Demos):
 
     @property
     def frame_quats_right(self):
+        if self.right_rot_frame_indecies is not None:
+            return self._get_indexed(
+                self.full_demos.frame_quats_right,
+                self.right_rot_frame_indecies,
+            )
+
         return self._get_indexed(
             self.full_demos.frame_quats_right, 
             self.right_frame_indecies,

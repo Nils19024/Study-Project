@@ -38,9 +38,11 @@ def assert_unit_quaternion(quat):
         raise InvalidActionError('Action contained non unit quaternion!')
 
 
-def calculate_delta_pose(robot: Robot, action: np.ndarray):
+def calculate_delta_pose(robot: Robot, action: np.ndarray, arm: Arm | None = None):
     a_x, a_y, a_z, a_qx, a_qy, a_qz, a_qw = action
-    x, y, z, qx, qy, qz, qw = robot.arm.get_tip().get_pose()
+    if arm is None:
+        arm = robot.arm
+    x, y, z, qx, qy, qz, qw = arm.get_tip().get_pose()
     new_rot = Quaternion(
         a_qw, a_qx, a_qy, a_qz) * Quaternion(qw, qx, qy, qz)
     qw, qx, qy, qz = list(new_rot)
@@ -537,4 +539,100 @@ class EndEffectorPoseViaIK(ArmActionMode):
             done = reached or not_moving
 
     def action_shape(self, scene: Scene) -> tuple:
+        return 7,
+
+
+class BimanualEndEffectorPoseViaIK(EndEffectorPoseViaIK):
+
+    def action(self, scene: Scene, action: np.ndarray, ignore_collisions=None):
+        assert_action_shape(action, (14,))
+        right_action = action[:7]
+        left_action = action[7:]
+        assert_unit_quaternion(right_action[3:])
+        assert_unit_quaternion(left_action[3:])
+
+        if not self._absolute_mode and self._frame != 'end effector':
+            right_action = calculate_delta_pose(
+                scene.robot, right_action, scene.robot.right_arm
+            )
+            left_action = calculate_delta_pose(
+                scene.robot, left_action, scene.robot.left_arm
+            )
+
+        right_relative_to = (
+            None if self._frame == 'world' else scene.robot.right_arm.get_tip()
+        )
+        left_relative_to = (
+            None if self._frame == 'world' else scene.robot.left_arm.get_tip()
+        )
+
+        right_joint_positions = None
+        left_joint_positions = None
+
+        try:
+            right_joint_positions = scene.robot.right_arm.solve_ik_via_jacobian(
+                right_action[:3],
+                quaternion=right_action[3:],
+                relative_to=right_relative_to,
+            )
+            scene.robot.right_arm.set_joint_target_positions(right_joint_positions)
+        except IKError as e:
+            logging.warning('Skipping right arm IK: %s', e)
+
+        try:
+            left_joint_positions = scene.robot.left_arm.solve_ik_via_jacobian(
+                left_action[:3],
+                quaternion=left_action[3:],
+                relative_to=left_relative_to,
+            )
+            scene.robot.left_arm.set_joint_target_positions(left_joint_positions)
+        except IKError as e:
+            logging.warning('Skipping left arm IK: %s', e)
+
+        if right_joint_positions is None and left_joint_positions is None:
+            raise InvalidActionError('Could not perform IK for either arm.')
+
+        done = False
+        prev_right_values = None
+        prev_left_values = None
+
+        while not done:
+            scene.step()
+
+            right_done = True
+            if right_joint_positions is not None:
+                right_values = scene.robot.right_arm.get_joint_positions()
+                right_reached = np.allclose(
+                    right_values, right_joint_positions, atol=0.01
+                )
+                right_not_moving = (
+                    prev_right_values is not None
+                    and np.allclose(right_values, prev_right_values, atol=0.001)
+                )
+                prev_right_values = right_values
+                right_done = right_reached or right_not_moving
+
+            left_done = True
+            if left_joint_positions is not None:
+                left_values = scene.robot.left_arm.get_joint_positions()
+                left_reached = np.allclose(
+                    left_values, left_joint_positions, atol=0.01
+                )
+                left_not_moving = (
+                    prev_left_values is not None
+                    and np.allclose(left_values, prev_left_values, atol=0.001)
+                )
+                prev_left_values = left_values
+                left_done = left_reached or left_not_moving
+
+            done = right_done and left_done
+
+            success, _ = scene.task.success()
+            if success:
+                break
+
+    def action_shape(self, scene: Scene) -> tuple:
+        return 14,
+
+    def unimanual_action_shape(self, scene: Scene) -> tuple:
         return 7,
