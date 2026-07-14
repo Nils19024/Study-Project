@@ -2836,28 +2836,6 @@ class AutoTPGMM(TPGMM):
             and not drop_action_component,
         }
 
-    @staticmethod
-    def _pair_position_rotation_frames(
-        pos_frame_idcs: Sequence[int],
-        rot_frame_idcs: Sequence[int],
-    ) -> tuple[tuple[int, int], ...]:
-        pos_frame_idcs = tuple(pos_frame_idcs)
-        rot_frame_idcs = tuple(rot_frame_idcs)
-
-        if not pos_frame_idcs:
-            pos_frame_idcs = rot_frame_idcs
-        if not rot_frame_idcs:
-            rot_frame_idcs = pos_frame_idcs
-
-        n_pairs = max(len(pos_frame_idcs), len(rot_frame_idcs))
-        return tuple(
-            (
-                pos_frame_idcs[min(i, len(pos_frame_idcs) - 1)],
-                rot_frame_idcs[min(i, len(rot_frame_idcs) - 1)],
-            )
-            for i in range(n_pairs)
-        )
-
     def _segment_and_frame_select(
         self,
         demos: Demos,
@@ -2970,36 +2948,9 @@ class AutoTPGMM(TPGMM):
 
             if segment.is_bimanual:
                 left_frame_idcs, right_frame_idcs = segment_frame_idcs
-
-                if (
-                    not self.config.tpgmm.position_only
-                    and len(left_frame_idcs) == 2
-                    and len(right_frame_idcs) == 2
-                ):
-                    left_pos_frame_idcs, left_rot_frame_idcs = left_frame_idcs
-                    right_pos_frame_idcs, right_rot_frame_idcs = right_frame_idcs
-                    left_frame_pairs = self._pair_position_rotation_frames(
-                        left_pos_frame_idcs,
-                        left_rot_frame_idcs,
-                    )
-                    right_frame_pairs = self._pair_position_rotation_frames(
-                        right_pos_frame_idcs,
-                        right_rot_frame_idcs,
-                    )
-                    segment_frame_idcs = tuple(
-                        sorted(
-                            set(left_pos_frame_idcs)
-                            | set(left_rot_frame_idcs)
-                            | set(right_pos_frame_idcs)
-                            | set(right_rot_frame_idcs)
-                        )
-                    )
-                else:
-                    left_frame_pairs = tuple((i, i) for i in left_frame_idcs)
-                    right_frame_pairs = tuple((i, i) for i in right_frame_idcs)
-                    segment_frame_idcs = tuple(
-                        sorted(set(left_frame_idcs) | set(right_frame_idcs))
-                    )
+                segment_frame_idcs = tuple(
+                    sorted(set(left_frame_idcs) | set(right_frame_idcs))
+                )
 
             segement_frames.append(segment_frame_idcs)
             segment_gmm = self._create_tpgmm(
@@ -3013,12 +2964,8 @@ class AutoTPGMM(TPGMM):
                 frame_data = PartialFrameViewDemos(
                     segment,
                     list(segment_frame_idcs),
-                    left_frame_indeces=[p for p, _ in left_frame_pairs],
-                    right_frame_indeces=[p for p, _ in right_frame_pairs],
-                    left_pos_frame_indeces=[p for p, _ in left_frame_pairs],
-                    left_rot_frame_indeces=[r for _, r in left_frame_pairs],
-                    right_pos_frame_indeces=[p for p, _ in right_frame_pairs],
-                    right_rot_frame_indeces=[r for _, r in right_frame_pairs],
+                    left_frame_indeces=list(left_frame_idcs),
+                    right_frame_indeces=list(right_frame_idcs),
                 )
             else:
                 frame_data = PartialFrameViewDemos(segment, list(segment_frame_idcs))
@@ -3037,29 +2984,7 @@ class AutoTPGMM(TPGMM):
             logger.info(f"Frame score (abs):\n{candidate_frame_ic}", filter=False)
             logger.info(f"Frame score (rel):\n{candidate_frame_rel_ic}", filter=False)
         else:
-            if demos.is_bimanual and candidate_frame_ic.ndim == 4:
-                for arm_index, arm_name in enumerate(["left", "right"]):
-                    for score_index, score_name in enumerate(["pos", "rot"]):
-                        abs_df = pd.DataFrame(
-                            candidate_frame_ic[:, arm_index, score_index, :],
-                            columns=demos.frame_names,
-                            index=[f"Segment {i}" for i in range(len(segments))],
-                        )
-                        rel_df = pd.DataFrame(
-                            candidate_frame_rel_ic[:, arm_index, score_index, :],
-                            columns=demos.frame_names,
-                            index=[f"Segment {i}" for i in range(len(segments))],
-                        )
-
-                        logger.info(
-                            f"Frame score {arm_name} {score_name} (abs):\n{abs_df}",
-                            filter=False,
-                        )
-                        logger.info(
-                            f"Frame score {arm_name} {score_name} (rel):\n{rel_df}",
-                            filter=False,
-                        )
-            elif demos.is_bimanual:
+            if demos.is_bimanual:
                 for arm_index, arm_name in enumerate(["left", "right"]):
                     abs_df = pd.DataFrame(
                         candidate_frame_ic[:, arm_index, :],
@@ -3126,11 +3051,7 @@ class AutoTPGMM(TPGMM):
                 )
             )
             # relative precision across frames
-            if demos.is_bimanual and candidate_ic.ndim == 4:
-                candidate_ic = candidate_ic / candidate_ic.sum(axis=0)
-                candidate_ic = candidate_ic.max(axis=3)
-                candidate_ic = candidate_ic.transpose(1, 2, 0)
-            elif demos.is_bimanual:
+            if demos.is_bimanual:
                 candidate_ic = candidate_ic / candidate_ic.sum(axis=0)
                 candidate_ic = candidate_ic.max(axis=2)
                 candidate_ic = candidate_ic.T # [frame, arm] -> [arm, frame]
@@ -3138,34 +3059,14 @@ class AutoTPGMM(TPGMM):
                 candidate_ic = candidate_ic / candidate_ic.sum(axis=0)
                 candidate_ic = candidate_ic.max(axis=1)  # max over gaussians (time)
 
-            candidate_ic = -np.array(candidate_ic)  # for consistency with AIC/BIC
+            candidate_ic = tuple(-candidate_ic)  # for consistency with AIC/BIC
 
-        candidate_ic = np.array(candidate_ic)
-        bimanual_split_scores = demos.is_bimanual and candidate_ic.ndim == 3
-
-        if bimanual_split_scores:
-            rel_candidate_ic = candidate_ic / np.min(
-                candidate_ic, axis=2, keepdims=True
-            )
-        elif demos.is_bimanual:
-            rel_candidate_ic = candidate_ic / np.min(
-                candidate_ic, axis=1, keepdims=True
-            )
+        if demos.is_bimanual:
+            rel_candidate_ic = np.array(candidate_ic) / np.min(candidate_ic, axis=1, keepdims=True)
         else:
-            rel_candidate_ic = candidate_ic / np.min(candidate_ic)
+            rel_candidate_ic = np.array(candidate_ic) / np.min(candidate_ic)
 
-        if bimanual_split_scores:
-            for arm_index, arm_name in enumerate(["left", "right"]):
-                for score_index, score_name in enumerate(["pos", "rot"]):
-                    for fr, bic, rel in zip(
-                        demos.frame_names,
-                        candidate_ic[arm_index, score_index],
-                        rel_candidate_ic[arm_index, score_index],
-                    ):
-                        logger.info(
-                            f"{fr:10} {arm_name:5} {score_name:3} score (rel): {bic:6.0f} ({rel:.3f})"
-                        )
-        elif demos.is_bimanual:
+        if demos.is_bimanual:
             for arm_index, arm_name in enumerate(["left", "right"]):
                 for fr, bic, rel in zip(
                     demos.frame_names,
@@ -3182,15 +3083,7 @@ class AutoTPGMM(TPGMM):
             logger.info(f"Dropping redundant frames {drop_candidates}.")
             super_threshold[drop_candidates] = False
         
-        if bimanual_split_scores:
-            selected_idcs = tuple(
-                (
-                    tuple(np.argwhere(super_threshold[arm_index, 0])[:, 0]),
-                    (int(np.argmax(rel_candidate_ic[arm_index, 1])),),
-                )
-                for arm_index in range(2)
-            )
-        elif demos.is_bimanual:
+        if demos.is_bimanual:
             selected_idcs = tuple(
                 tuple(np.argwhere(super_threshold[arm_index])[:, 0])
                 for arm_index in range(2)
@@ -3253,21 +3146,15 @@ class AutoTPGMM(TPGMM):
                             fitting_actions=fitting_actions,
                         )
 
-                        if (
-                            self.config.frame_selection.use_precision
-                            and not frame_gmm.config.position_only
-                        ):
-                            score = self._position_rotation_precision_scores(frame_gmm)
-                        else:
-                            score = (
-                                frame_gmm.model.precision_det
-                                if self.config.frame_selection.use_precision
-                                else (
-                                    frame_gmm.model.bic_from_lik(lik)
-                                    if self.config.frame_selection.use_bic
-                                    else frame_gmm.model.aic_from_lik(lik)
-                                )
+                        score = (
+                            frame_gmm.model.precision_det
+                            if self.config.frame_selection.use_precision
+                            else (
+                                frame_gmm.model.bic_from_lik(lik)
+                                if self.config.frame_selection.use_bic
+                                else frame_gmm.model.aic_from_lik(lik)
                             )
+                        )
 
                         arm_scores.append(score)
                         arm_gmms.append(frame_gmm)
@@ -3315,30 +3202,6 @@ class AutoTPGMM(TPGMM):
             candidate_score = np.stack(candidate_score)
 
         return candidate_gmms, candidate_score
-
-    @staticmethod
-    def _precision_from_covariance_block(
-        sigma: np.ndarray, start: int, stop: int
-    ) -> np.ndarray:
-        precision = []
-        for component_sigma in sigma:
-            block = component_sigma[start:stop, start:stop]
-            precision.append(np.linalg.det(np.linalg.pinv(block)))
-        return np.array(precision)
-
-    def _position_rotation_precision_scores(self, frame_gmm: TPGMM) -> np.ndarray:
-        start = int(frame_gmm.config.add_time_component)
-        pos_score = self._precision_from_covariance_block(
-            frame_gmm.model.sigma,
-            start,
-            start + 3,
-        )
-        rot_score = self._precision_from_covariance_block(
-            frame_gmm.model.sigma,
-            start + 3,
-            start + 6,
-        )
-        return np.stack((pos_score, rot_score))
 
     def _segment_trajectories(
         self,
@@ -3999,41 +3862,23 @@ class AutoTPGMM(TPGMM):
             if self._demos.is_bimanual:
                 frame_data = self.segment_frame_views[i]
 
-                left_pos_idcs = (
-                    frame_data.left_pos_frame_indecies
-                    if frame_data.left_pos_frame_indecies is not None
-                    else frame_data.left_frame_indecies
-                ) or []
-                left_rot_idcs = (
-                    frame_data.left_rot_frame_indecies
-                    if frame_data.left_rot_frame_indecies is not None
-                    else frame_data.left_frame_indecies
-                ) or []
-                right_pos_idcs = (
-                    frame_data.right_pos_frame_indecies
-                    if frame_data.right_pos_frame_indecies is not None
-                    else frame_data.right_frame_indecies
-                ) or []
-                right_rot_idcs = (
-                    frame_data.right_rot_frame_indecies
-                    if frame_data.right_rot_frame_indecies is not None
-                    else frame_data.right_frame_indecies
-                ) or []
+                left_idcs = frame_data.left_frame_indecies or []
+                right_idcs = frame_data.right_frame_indecies or []
 
                 selected_left_trans = []
                 selected_left_quats = []
                 selected_right_trans = []
                 selected_right_quats = []
 
-                for pos_idx, rot_idx in zip(left_pos_idcs, left_rot_idcs):
-                    selected_left_trans.append(frame_trans[0][pos_idx])
-                    selected_left_quats.append(frame_quats[0][rot_idx])
+                for j in left_idcs:
+                    selected_left_trans.append(frame_trans[0][j])
+                    selected_left_quats.append(frame_quats[0][j])
 
-                for pos_idx, rot_idx in zip(right_pos_idcs, right_rot_idcs):
-                    selected_right_trans.append(frame_trans[1][pos_idx])
-                    selected_right_quats.append(frame_quats[1][rot_idx])
+                for j in right_idcs:
+                    selected_right_trans.append(frame_trans[1][j])
+                    selected_right_quats.append(frame_quats[1][j])
 
-                n_left = len(left_pos_idcs)
+                n_left = len(left_idcs)
                 left_margs = margs[:n_left]
                 right_margs = margs[n_left:]
 
