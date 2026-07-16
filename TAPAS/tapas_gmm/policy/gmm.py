@@ -239,7 +239,11 @@ class GMMPolicy(Policy):
                 frame_quats=frame_quats,
                 postprocess=self.config.postprocess_prediction,
             )
-            info["done"] = False
+            info["done"] = bool(
+                self._time_based
+                and self._t_curr is not None
+                and np.all(self._t_curr > self.config.batch_t_max)
+            )
 
         if self.config.binary_gripper_action:
             if action.shape[0] == 16:
@@ -582,7 +586,7 @@ class GMMPolicy(Policy):
                 self._pos_lag_thresh is None
                 or pos_lag_norm < self._pos_lag_thresh
             )
-            and (quat_lag is None or (quat_lag < self._quat_change_thresh))
+            and (quat_lag is None or (quat_lag < self._quat_lag_thresh))
         )
 
         ee_stuck = (

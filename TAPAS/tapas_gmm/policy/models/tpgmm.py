@@ -1845,6 +1845,7 @@ class TPGMM:
         model: GMM | None = None,
         data: np.ndarray | None = None,
         size=None,
+        frame_names=None,
     ):
         """
         Plot the model in all frames. Splits the plot into position, rotation
@@ -1913,6 +1914,9 @@ class TPGMM:
             mean_as_base=mean_as_base,
             rotations_raw=rotations_raw,
         )
+
+        if frame_names is not None:
+            plot_data.frame_names = frame_names
 
         self._plot_data = plot_data
 
@@ -2660,6 +2664,7 @@ class AutoTPGMM(TPGMM):
         self._demos_segments: tuple[DemosSegment, ...] | None = None
         self.segment_frames: list[tuple[int]] | None = None
         self.segment_frame_views: list[PartialFrameViewDemos] | None = None
+        self.frame_scores: np.ndarray | None = None
 
         self._online_active_segment: int | None = None
         self._online_joint_models: tuple[GMM, ...] | None = None
@@ -2979,6 +2984,7 @@ class AutoTPGMM(TPGMM):
 
         candidate_frame_ic = np.stack(candidate_frame_ic)
         candidate_frame_rel_ic = np.stack(candidate_frame_rel_ic)
+        self.frame_scores = candidate_frame_rel_ic
 
         if global_frames:
             logger.info(f"Frame score (abs):\n{candidate_frame_ic}", filter=False)
@@ -4044,7 +4050,36 @@ class AutoTPGMM(TPGMM):
         size=None,
     ):
         if per_segment:
-            for seg_model in self.segment_gmms:
+            for segment_idx, (seg_model, frame_data) in enumerate(
+                zip(self.segment_gmms, self.segment_frame_views)
+            ):
+                score_idx = 0 if len(self.frame_scores) == 1 else segment_idx
+                if self._demos.is_bimanual:
+                    frame_scores = np.concatenate(
+                        [
+                            self.frame_scores[
+                                score_idx, 0, frame_data.left_frame_indecies
+                            ],
+                            self.frame_scores[
+                                score_idx, 1, frame_data.right_frame_indecies
+                            ],
+                        ]
+                    )
+                else:
+                    frame_scores = self.frame_scores[
+                        score_idx, self.segment_frames[segment_idx]
+                    ]
+
+                frame_names = tuple(
+                    f"{name} (precision: {score:.3f})"
+                    for name, score in zip(frame_data.frame_names, frame_scores)
+                )
+                segment_title = (
+                    f"Segment {segment_idx}"
+                    if title is None
+                    else f"{title} - Segment {segment_idx}"
+                )
+
                 seg_model.plot_model(
                     plot_traj=plot_traj,
                     plot_gaussians=plot_gaussians,
@@ -4057,10 +4092,11 @@ class AutoTPGMM(TPGMM):
                     mean_as_base=mean_as_base,
                     annotate_gaussians=annotate_gaussians,
                     annotate_trajs=annotate_trajs,
-                    title=title,
+                    title=segment_title,
                     plot_derivatives=plot_derivatives,
                     plot_traj_means=plot_traj_means,
                     model=None,
+                    frame_names=frame_names,
                 )
         else:
             if not self._model_check():
@@ -4463,6 +4499,7 @@ class AutoTPGMM(TPGMM):
         self._demos_segments = ckpt._demos_segments
         self.segment_frames = ckpt.segment_frames
         self.segment_frame_views = ckpt.segment_frame_views
+        self.frame_scores = getattr(ckpt, "frame_scores", None)
 
 
 def _get_rbd_manifolds_per_frame(position_only: bool, add_action_dim: bool, is_bimanual: bool = False,) -> int:
