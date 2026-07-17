@@ -102,6 +102,9 @@ class DiffusionPolicyConfig(PolicyConfig):
 
     obs_encoder: ObservationEncoderConfig | None = None
 
+    arm: str | None = None
+    condition_on_arm: str | None = None
+
 
 def zero_pad_timed_tensor(obs_stack: torch.Tensor, n_steps: int) -> torch.Tensor:
     assert len(obs_stack.shape) == 2
@@ -274,6 +277,14 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
         elif self.config.obs_as_global_cond:
             # condition throught global feature
             global_cond = nobs[:, :To].reshape(nobs.shape[0], -1)
+            if "condition" in obs_dict:
+                condition = self.normalizer["condition"].normalize(
+                    obs_dict["condition"]
+                )
+                global_cond = torch.cat(
+                    (global_cond, condition.reshape(condition.shape[0], -1)),
+                    dim=-1,
+                )
             shape = (B, T, Da)
             if self.config.pred_action_steps_only:
                 shape = (B, self.config.n_action_steps, Da)
@@ -337,6 +348,12 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
             local_cond[:, self.config.n_obs_steps :, :] = 0
         elif self.config.obs_as_global_cond:
             global_cond = obs[:, : self.config.n_obs_steps, :].reshape(obs.shape[0], -1)
+            if "condition" in nbatch:
+                condition = nbatch["condition"]
+                global_cond = torch.cat(
+                    (global_cond, condition.reshape(condition.shape[0], -1)),
+                    dim=-1,
+                )
             if self.config.pred_action_steps_only:
                 To = self.config.n_obs_steps
                 start = To
@@ -401,11 +418,30 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
     def _get_policy_input(self, obs: SceneObservation) -> tuple[torch.Tensor, dict]:
         return self.obs_encoder.encode(obs)
 
-    def _get_policy_target(self, obs: SceneObservation) -> torch.Tensor:
-        robo_state = torch.cat((obs.ee_pose, obs.gripper_state), dim=-1)
+    @staticmethod
+    def _get_robot_state(
+        ee_pose: torch.Tensor,
+        gripper_state: torch.Tensor,
+        arm: str | None,
+    ) -> torch.Tensor:
+        if arm == "left":
+            return torch.cat((ee_pose[..., :7], gripper_state[..., :1]), dim=-1)
+        if arm == "right":
+            return torch.cat((ee_pose[..., 7:], gripper_state[..., 1:]), dim=-1)
+        return torch.cat((ee_pose, gripper_state), dim=-1)
 
+    def _get_policy_target(self, obs: SceneObservation) -> torch.Tensor:
+        robo_state = self._get_robot_state(
+            obs.ee_pose, obs.gripper_state, self.config.arm
+        )
         # remove first time step
         return robo_state[:, 1:]
+
+    def _get_policy_condition(self, obs: SceneObservation) -> torch.Tensor:
+        condition = self._get_robot_state(
+            obs.ee_pose, obs.gripper_state, self.config.condition_on_arm
+        )
+        return condition[:, 1:]
 
     def forward_step(
         self,
@@ -420,6 +456,8 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
         action = self._get_policy_target(batch)
 
         obs_dict = {"obs": obs, "action": action}
+        if self.config.condition_on_arm is not None:
+            obs_dict["condition"] = self._get_policy_condition(batch)
 
         loss = self.compute_loss(obs_dict)
 
@@ -447,6 +485,7 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
     def predict(
         self,
         obs: SceneObservation,  # type: ignore
+        condition: torch.Tensor | None = None,
     ) -> tuple[RobotTrajectory, dict]:
         self._obs_que.append(obs)
         with torch.no_grad():
@@ -461,7 +500,10 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
             padded_policy_input = zero_pad_timed_tensor(
                 policy_input, self.config.n_obs_steps
             )
-            pred_dict = self.predict_action({"obs": padded_policy_input.unsqueeze(0)})
+            obs_dict = {"obs": padded_policy_input.unsqueeze(0)}
+            if condition is not None:
+                obs_dict["condition"] = condition
+            pred_dict = self.predict_action(obs_dict)
 
             # TODO: this dict repacking is HACK-y because I did it weirdly somewhere else
             # Make it straightforward, eg just add the raw visual_enc_info or sth
@@ -474,7 +516,9 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
             # action_stack = action_stack[0]  # Only return first action from stack
             action_stack[..., 3:7] = normalize_quaternion(action_stack[..., 3:7])
 
-            traj = RobotTrajectory.from_np(ee=action_stack[:7], gripper=action_stack[7])
+            traj = RobotTrajectory.from_np(
+                ee=action_stack[..., :7], gripper=action_stack[..., 7]
+            )
 
         return traj, pred_dict
 
@@ -492,19 +536,29 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
                 "Using DP normalizer implementation."
             )
 
-            action_distribution = torch.cat(
-                (
-                    replay_memory.scene_data.get_ee_pose_distribution(),
-                    replay_memory.scene_data.get_gripper_state_distribution(),
-                ),
-                dim=-1,
-            ).to(device)
+            ee_pose_distribution = (
+                replay_memory.scene_data.get_ee_pose_distribution().to(device)
+            )
+            gripper_distribution = (
+                replay_memory.scene_data.get_gripper_state_distribution().to(device)
+            )
+            action_distribution = self._get_robot_state(
+                ee_pose_distribution,
+                gripper_distribution,
+                self.config.arm,
+            )
 
             obs_distribution = self.obs_encoder.get_obs_distribution(replay_memory).to(
                 device
             )
 
             data = {"action": action_distribution, "obs": obs_distribution}
+            if self.config.condition_on_arm is not None:
+                data["condition"] = self._get_robot_state(
+                    ee_pose_distribution,
+                    gripper_distribution,
+                    self.config.condition_on_arm,
+                )
 
             # to prevent blowing up dims that barely change
             kwargs = {"range_eps": 5e-2}
