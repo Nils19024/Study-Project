@@ -508,17 +508,29 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
             # TODO: this dict repacking is HACK-y because I did it weirdly somewhere else
             # Make it straightforward, eg just add the raw visual_enc_info or sth
             # NOTE: indexing [0] because of multistep predictions in diffusion policy
-            pred_dict["vis_encoding"] = [c[0] for c in visual_enc_info["kp_raw_2d"]]
-            pred_dict["heatmap"] = [c[0] for c in visual_enc_info["post"]]
+            if "kp_raw_2d" in visual_enc_info:
+                pred_dict["vis_encoding"] = [
+                    c[0] for c in visual_enc_info["kp_raw_2d"]
+                ]
+            if "post" in visual_enc_info:
+                pred_dict["heatmap"] = [c[0] for c in visual_enc_info["post"]]
 
             action_stack = pred_dict["action"].detach().cpu().squeeze(0).numpy()
 
             # action_stack = action_stack[0]  # Only return first action from stack
             action_stack[..., 3:7] = normalize_quaternion(action_stack[..., 3:7])
 
-            traj = RobotTrajectory.from_np(
-                ee=action_stack[..., :7], gripper=action_stack[..., 7]
-            )
+            if action_stack.shape[-1] == 16:
+                action_stack[..., 10:14] = normalize_quaternion(
+                    action_stack[..., 10:14]
+                )
+                traj = RobotTrajectory.from_np(
+                    ee=action_stack[..., :14], gripper=action_stack[..., 14:]
+                )
+            else:
+                traj = RobotTrajectory.from_np(
+                    ee=action_stack[..., :7], gripper=action_stack[..., 7]
+                )
 
         return traj, pred_dict
 
