@@ -143,10 +143,12 @@ def build_data_loaders(
             dataset,
             batch_size=config.batch_size,
             shuffle=config.shuffle,
-            num_workers=2,
+            num_workers=config.train_workers,
             collate_fn=collate_func,
-            pin_memory=False,
-            prefetch_factor=1,
+            pin_memory=config.pin_memory,
+            prefetch_factor=(
+                config.train_prefetch if config.train_workers > 0 else None
+            ),
         )
         val_loader = None
 
