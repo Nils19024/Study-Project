@@ -187,10 +187,12 @@ def run_seed(
     weightsdir = os.path.join(cwd, "seed%d" % seed, "weights")
     logdir = os.path.join(cwd, "seed%d" % seed)
 
+    train_device = rank if torch.cuda.is_available() else torch.device("cpu")
+
     train_runner = OfflineTrainRunner(
         agent=agent,
         wrapped_replay_buffer=wrapped_replay,
-        train_device=rank,
+        train_device=train_device,
         stat_accumulator=stat_accum,
         iterations=cfg.framework.training_iterations,
         logdir=logdir,

@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import peract_config
 
@@ -15,8 +16,22 @@ from helpers.observation_utils import create_obs_config
 import torch.multiprocessing as mp
 
 
-@hydra.main(config_name="config", config_path="conf")
-def main(cfg: DictConfig) -> None:
+def run_training(cfg: DictConfig, run_dir: str | Path | None = None) -> None:
+    if run_dir is None:
+        _run_training(cfg)
+        return
+
+    training_dir = Path(run_dir) / cfg.rlbench.task_name / cfg.method.name
+    training_dir.mkdir(parents=True, exist_ok=True)
+    current_dir = Path.cwd()
+    os.chdir(training_dir)
+    try:
+        _run_training(cfg)
+    finally:
+        os.chdir(current_dir)
+
+
+def _run_training(cfg: DictConfig) -> None:
     cfg_yaml = OmegaConf.to_yaml(cfg)
     logging.info("\n" + cfg_yaml)
 
@@ -109,6 +124,11 @@ def main(cfg: DictConfig) -> None:
         f.write(f"# Took {duration.total_seconds()}")
         f.write(os.linesep)
         f.write(os.linesep)
+
+
+@hydra.main(config_name="config", config_path="conf")
+def main(cfg: DictConfig) -> None:
+    run_training(cfg)
 
 
 if __name__ == "__main__":
