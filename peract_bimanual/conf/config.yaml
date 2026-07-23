@@ -16,6 +16,7 @@ rlbench:
 
 replay:
     batch_size: 8
+    capacity: 300000
     timesteps: 1
     prioritisation: False
     task_uniform: True # uniform sampling of tasks for multi-task buffers

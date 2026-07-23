@@ -51,7 +51,8 @@ class QFunction(nn.Module):
 
         # distributed training
         if training:
-            self._qnet = DDP(self._qnet, device_ids=[device])
+            device_ids = None if device == torch.device("cpu") else [device]
+            self._qnet = DDP(self._qnet, device_ids=device_ids)
 
     def _argmax_3d(self, tensor_orig):
         b, c, d, h, w = tensor_orig.shape  # c will be one

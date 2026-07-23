@@ -39,6 +39,7 @@ def create_replay(cfg, replay_path):
             cfg.rlbench.cameras,
             cfg.method.voxel_sizes,
             cfg.rlbench.camera_resolution,
+            cfg.replay.get("capacity", 3e5),
         )
     else:
         return create_unimanual_replay(
@@ -50,6 +51,7 @@ def create_replay(cfg, replay_path):
             cfg.rlbench.cameras,
             cfg.method.voxel_sizes,
             cfg.rlbench.camera_resolution,
+            cfg.replay.get("capacity", 3e5),
         )
 
 
@@ -541,6 +543,8 @@ def fill_replay(
     if clip_model is None:
         model, _ = load_clip("RN50", jit=False, device=device)
         clip_model = build_model(model.state_dict())
+        if device.type == "cpu":
+            clip_model.float()
         clip_model.to(device)
         del model
 
