@@ -4,6 +4,7 @@ own_code/artifacts/
 riepybdlib
 
 .venv
+.vscode/
 __pycache__/
 *.py[cod]
 own_code/outputs/
