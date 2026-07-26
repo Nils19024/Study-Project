@@ -1,3 +1,8 @@
 sim/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04/updtChck.dat
 own_code/artifacts/
 riepybdlib
+
+.venv
+__pycache__/
+*.py[cod]
+own_code/outputs/
