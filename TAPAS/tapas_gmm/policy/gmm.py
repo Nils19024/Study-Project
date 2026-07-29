@@ -127,6 +127,7 @@ class GMMPolicy(Policy):
 
         self._last_prediction = None
         self._last_pose = None
+        self._frames_initialized = False
 
         self._env = None
         self._pin_model = None
@@ -173,6 +174,7 @@ class GMMPolicy(Policy):
 
         self._last_prediction = None
         self._last_pose = None
+        self._frames_initialized = False
 
     def get_frames(self, obs: SceneObservation) -> tuple[np.ndarray, np.ndarray]:
         return get_frames_from_obs(
@@ -254,7 +256,7 @@ class GMMPolicy(Policy):
         return action, info
 
     def _get_frame_trans(self, obs):
-        if self.model._online_first_step or not self._fix_frames:
+        if not self._fix_frames or not self._frames_initialized:
             if self.config.obs_encoder.image_encoder is not None:
                 kp, enc_info = self.obs_encoder.get_image_encoding(
                     obs.to(device).unsqueeze(0)
@@ -267,6 +269,7 @@ class GMMPolicy(Policy):
 
             frame_trans, frame_quats = self.get_frames(obs)
             self._env.publish_frames(frame_trans, frame_quats)
+            self._frames_initialized = True
         else:
             viz_encoding = None
 

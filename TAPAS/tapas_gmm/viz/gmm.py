@@ -454,7 +454,7 @@ def plot_gmm_time_based(
             ax = fig.add_subplot(n_rows, n_frames, ax_idx)
 
             ax.set_title(
-                f"{frame_names[j]} frame: {row_data.name}"
+                f"{frame_names[j]}\nframe: {row_data.name}"
                 if per_frame
                 else row_data.name
             )
