@@ -51,7 +51,7 @@ tab_colors = tuple(
     )
 )
 
-joint_color = "tab:orange"
+joint_color = "tab:purple"
 
 dim_colors = tuple(("tab:red", "tab:green", "tab:blue"))
 
@@ -1145,6 +1145,7 @@ def plot_gmm_components(
     frame_names,
     plot_trajectory=0,
     size=(None, 6),
+    time_based=False,
 ):
     """
     Plot the transported marginals and joint model in world frame - per
@@ -1178,6 +1179,8 @@ def plot_gmm_components(
     n_frames = len(frame_names)
 
     n_states = model.nb_states
+    start = 1 if time_based else 0
+    stop = start + 3
 
     fig, ax = plt.subplots(ncols=n_states, subplot_kw={"projection": "3d"})
 
@@ -1215,8 +1218,8 @@ def plot_gmm_components(
 
             plot_ellipsoid_from_gaussian3d(
                 ax[s],
-                m_trans.mu[s, :3],
-                m_trans.sigma[s, :3, :3],
+                m_trans.mu[s, start:stop],
+                m_trans.sigma[s, start:stop, start:stop],
                 color=rgba,
                 alpha=0.2,
             )
@@ -1227,8 +1230,8 @@ def plot_gmm_components(
 
         plot_ellipsoid_from_gaussian3d(
             ax[s],
-            m_joint.mu[s, :3],
-            m_joint.sigma[s, :3, :3],
+            m_joint.mu[s, start:stop],
+            m_joint.sigma[s, start:stop, start:stop],
             color=joint_color,
             alpha=0.8,
         )
@@ -1471,6 +1474,7 @@ def plot_reconstructions_time_based(
     component_borders: tuple[tuple[float, ...], ...] | None = None,
     only_plot_dims: tuple[int, ...] | None = None,
     save_svg: str | None = None,
+    title: str | None = None,
 ):
     if not includes_time and plot_gaussians:
         logger.warning("Cannot plot time-based gaussians without time dim.")
@@ -1639,6 +1643,17 @@ def plot_reconstructions_time_based(
 
             rec = reconstructions[i][:, sl]
             traj = original_trajectories[i][:, sl] if plot_trajectories else None
+            rec_time = (
+                reconstructions[i][:, 0]
+                if includes_time
+                else np.linspace(0, 1, rec.shape[0])
+            )
+            if plot_trajectories:
+                traj_time = (
+                    original_trajectories[i][:, 0]
+                    if includes_time
+                    else np.linspace(0, 1, traj.shape[0])
+                )
             axi = ax[i][j]
             # axi.set_xlim([0, 1])
             if is_quat:
@@ -1647,7 +1662,7 @@ def plot_reconstructions_time_based(
             for d in range(dim):
                 if plot_reconstructions:
                     axi.plot(
-                        np.linspace(0, 1, rec.shape[0]),
+                        rec_time,
                         rec[:, d],
                         color=dim_colors[d],
                         lw=2,
@@ -1655,7 +1670,7 @@ def plot_reconstructions_time_based(
                     )
                 if plot_trajectories:
                     axi.plot(
-                        np.linspace(0, 1, traj.shape[0]),
+                        traj_time,
                         traj[:, d],
                         color=dim_colors[d],
                         ls="--",
@@ -1732,6 +1747,9 @@ def plot_reconstructions_time_based(
         ncols=3,
         handler_map={Circle: HandlerEllipse()},
     )
+
+    if title is not None:
+        fig.suptitle(title)
 
     plt.tight_layout()
 
