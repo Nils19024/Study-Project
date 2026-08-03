@@ -37,7 +37,7 @@ from tapas_gmm.utils.observation import SceneObservation
 from tapas_gmm.utils.robot_trajectory import RobotTrajectory, TrajectoryPoint
 from tapas_gmm.utils.select_gpu import device
 from tapas_gmm.utils.topp import TOPP  # , SapienScene
-from tapas_gmm.viz.gmm import plot_traj_topp
+from tapas_gmm.viz.gmm import plot_reconstructions_time_based, plot_traj_topp
 
 zero_pos = np.array([0, 0, 0])
 zero_quat = np.array([1, 0, 0, 0])
@@ -227,7 +227,10 @@ class GMMPolicy(Policy):
                 prediction = self._prediction_batch.step()
                 info["done"] = False
             action = (
-                self._postprocess_prediction(obs.ee_pose.numpy(), prediction.ee)
+                self._postprocess_prediction(
+                    obs.ee_pose.numpy(),
+                    np.concatenate((prediction.ee, prediction.gripper)),
+                )
                 if self.config.postprocess_prediction
                 else prediction
             )
@@ -350,9 +353,12 @@ class GMMPolicy(Policy):
         inputs = []
         prediction_raw = []
         prediction_tan = []
+        prediction_extras = []
+        prediction_segments = []
         first_step = True
 
         while self._t_curr <= self.config.batch_t_max:
+            prediction_segments.append(self.model._online_active_segment)
             # TODO: needs to return a TrajectoryPoint too, so that in RobotTrajectory.from_np
             # we can assign the gripper state properly as well.
             inp, pred, extra = self._predict_and_step(
@@ -363,7 +369,10 @@ class GMMPolicy(Policy):
                 postprocess=False,
             )
             prediction_raw.append(pred)
-            prediction_tan.append(extra["mu_tangent"])
+            if obs.ee_pose.shape[0] == 14:
+                prediction_extras.append(extra)
+            else:
+                prediction_tan.append(extra["mu_tangent"])
             inputs.append(inp)
 
             first_step = False
@@ -384,7 +393,34 @@ class GMMPolicy(Policy):
         # if self.config.invert_prediction_batch:
         #     raw_traj = raw_traj.invert()
 
-        if self.config.dbg_prediction:
+        if self.config.dbg_prediction and obs.ee_pose.shape[0] == 14:
+            for segment, frame_data in enumerate(self.model.segment_frame_views):
+                idcs = np.where(np.array(prediction_segments) == segment)[0]
+                n_left = len(frame_data.left_frame_indecies or [])
+
+                for arm, arm_idx, frame_names in (
+                    ("left", 0, frame_data.frame_names[:n_left]),
+                    ("right", 1, frame_data.frame_names[n_left:]),
+                ):
+                    mu = np.stack(
+                        [prediction_extras[i][arm]["mu_tangent"] for i in idcs]
+                    )
+                    rec = np.full((len(inputs), mu.shape[1] + 1), np.nan)
+                    rec[idcs] = np.concatenate((np.stack(inputs)[idcs], mu), axis=1)
+                    plot_reconstructions_time_based(
+                        [self.model._online_trans_margs_joint[segment][arm_idx]],
+                        [self.model._online_joint_models[segment][arm_idx]],
+                        [rec],
+                        None,
+                        None,
+                        frame_names,
+                        plot_trajectories=False,
+                        plot_coord_origin=False,
+                        only_plot_dims=(0, 1, 2),
+                        title=f"Segment {segment} - {arm}",
+                    )
+
+        if self.config.dbg_prediction and obs.ee_pose.shape[0] != 14:
             # TODO: tangent proj rotation for plot!
             full_rec = np.concatenate(
                 (np.stack(inputs), np.stack(prediction_tan)), axis=1
