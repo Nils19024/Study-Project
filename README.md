@@ -1,4 +1,14 @@
-## CoppeliaSim
+## Cluster setup
+
+```bash
+git clone https://github.com/Nils19024/Study-Project.git
+cd Study-Project
+bash setup_cluster.sh
+```
+
+## Manual setup
+
+### CoppeliaSim
 
 ```bash
 mkdir -p sim
@@ -11,7 +21,7 @@ export LD_LIBRARY_PATH="$COPPELIASIM_ROOT:${LD_LIBRARY_PATH:-}"
 export QT_QPA_PLATFORM_PLUGIN_PATH="$COPPELIASIM_ROOT"
 ```
 
-## TAPAS and Diffusion
+### TAPAS and Diffusion
 
 ```bash
 conda create -n tapas_diffusion python=3.10 -y
@@ -25,7 +35,7 @@ pip install ipykernel
 python -m ipykernel install --user --name tapas_diffusion --display-name "Python (tapas_diffusion)"
 ```
 
-## PerAct2
+### PerAct2
 
 ```bash
 conda create -n peract2 --clone tapas_diffusion
@@ -36,5 +46,3 @@ pip install -e rlbench -e peract_bimanual
 PYTORCH3D_NO_EXTENSION=1 pip install --no-build-isolation "git+https://github.com/facebookresearch/pytorch3d.git@v0.7.5"
 python -m ipykernel install --user --name peract2 --display-name "Python (peract2)"
 ```
-
-Store the demos in `own_code/artifacts/datasets`, select the matching kernel, and run a notebook from `own_code/bimanual`.
