@@ -23,6 +23,12 @@ if ! conda env list | awk '{print $1}' | grep -qx tapas_diffusion; then
 fi
 
 conda run -n tapas_diffusion python -m pip install -r "$ROOT/TAPAS/requirements.txt"
+if ! conda run -n tapas_diffusion python -c \
+    "import torch; raise SystemExit(torch.version.cuda is None)"; then
+    conda run -n tapas_diffusion python -m pip uninstall -y torch
+    conda run -n tapas_diffusion python -m pip install torch==2.1.0 \
+        --index-url https://download.pytorch.org/whl/cu118
+fi
 conda run -n tapas_diffusion python -m pip install \
     -e "$ROOT/riepybdlib" \
     -e "$ROOT/TAPAS[diffusion]" \
@@ -82,8 +88,8 @@ conda run -n peract2 python -m ipykernel install --user \
     --name peract2 --display-name "Python (peract2)"
 
 conda run -n tapas_diffusion python -c \
-    "import torch, diffusers, tapas_gmm; print('TAPAS/Diffusion ready. CUDA:', torch.cuda.is_available())"
+    "import torch, diffusers, tapas_gmm; print('TAPAS/Diffusion ready. CUDA build:', torch.version.cuda, 'GPU available:', torch.cuda.is_available())"
 conda run -n peract2 python -c \
-    "import torch, pyrep, rlbench, agents; print('PerAct2 ready. CUDA:', torch.cuda.is_available())"
+    "import torch, pyrep, rlbench, agents; print('PerAct2 ready. CUDA build:', torch.version.cuda, 'GPU available:', torch.cuda.is_available())"
 
 echo "Setup complete. Available environments: tapas_diffusion and peract2"
