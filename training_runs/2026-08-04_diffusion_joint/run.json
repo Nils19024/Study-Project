@@ -1,0 +1,38 @@
+{
+  "status": "completed",
+  "base_commit": "e2cf87d339ca4594aca7f3a6d6ae402129264741",
+  "start_time": "2026-08-04T18:48:14+02:00",
+  "end_time": "2026-08-04T23:32:38+02:00",
+  "elapsed": "04:44:19",
+  "epochs": 1500,
+  "model_parameters": 66238480,
+  "hardware": {
+    "host": "hpcgpu5",
+    "gpu": "NVIDIA TITAN X (Pascal)",
+    "physical_gpu_index": 0,
+    "gpu_memory_mib": 12288,
+    "driver_version": "570.211.01"
+  },
+  "configuration": {
+    "action_dim": 16,
+    "obs_dim": 35,
+    "horizon": 16,
+    "n_obs_steps": 2,
+    "n_action_steps": 8,
+    "demonstrations": 5
+  },
+  "software": {
+    "python": "3.10",
+    "torch": "2.1.0+cu118",
+    "cuda_build": "11.8",
+    "diffusers": "0.11.1",
+    "tensordict": "0.2.1"
+  },
+  "checkpoint": {
+    "path": "latest.pt",
+    "kind": "EMA",
+    "bytes": 265024502,
+    "sha256": "7ac9bcfdf072acba497262cb5c01fbda990372bcbe164cbbf9a4c1c8bafc0f24"
+  },
+  "evaluation_performed": false
+}
