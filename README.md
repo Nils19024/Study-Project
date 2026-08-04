@@ -29,6 +29,8 @@ conda activate tapas_diffusion
 git clone https://github.com/vonHartz/riepybdlib.git
 git -C riepybdlib checkout a56cbdb
 pip install -r TAPAS/requirements.txt
+pip uninstall -y torch
+pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 pip install --no-deps --no-build-isolation git+https://github.com/markusgrotz/PyRep.git
 pip install -e riepybdlib -e rlbench -e "TAPAS[diffusion]"
 pip install ipykernel
