@@ -1,0 +1,64 @@
+{
+  "status": "completed",
+  "base_commit": "8d58ebd",
+  "notebook": "own_code/notebooks/train_PerAct2.ipynb",
+  "start_time": "2026-08-05T15:13:52+02:00",
+  "end_time": "2026-08-07T15:21:22+02:00",
+  "elapsed": "48:07:30",
+  "training_iterations": 40000,
+  "model_parameters": 66180794,
+  "hardware": {
+    "host": "hpcgpu5",
+    "gpu": "NVIDIA TITAN X (Pascal)",
+    "physical_gpu_index": 0,
+    "gpu_memory_mib": 12288,
+    "driver_version": "570.211.01"
+  },
+  "configuration": {
+    "method": "BIMANUAL_PERACT",
+    "dataset": "bimanual_dual_push_buttons",
+    "demonstrations": 100,
+    "batch_size": 1,
+    "camera_resolution": [
+      128,
+      128
+    ],
+    "episode_length": 25,
+    "voxel_sizes": [
+      100
+    ],
+    "image_crop_size": 64,
+    "low_dim_size": 8,
+    "rotation_resolution": 5,
+    "augmentation": {
+      "crop": true,
+      "se3": true,
+      "xyz": [
+        0.125,
+        0.125,
+        0.125
+      ],
+      "rpy_degrees": [
+        0.0,
+        0.0,
+        45.0
+      ]
+    }
+  },
+  "software": {
+    "python": "3.10.20",
+    "torch": "2.1.0+cu121",
+    "torchvision": "0.16.0+cu121",
+    "cuda_build": "12.1",
+    "numpy": "1.26.4",
+    "hydra": "1.3.4"
+  },
+  "checkpoint": {
+    "path": "latest.pt",
+    "source_filename": "QAttentionAgent_layer0.pt",
+    "kind": "PerAct2",
+    "bytes": 332154847,
+    "sha256": "c4fa059dcda89ab102d8295c0dfd63ebaa1be8bf246b4f7d33a652d05f968e94"
+  },
+  "evaluation_performed": false
+}
