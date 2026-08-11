@@ -1,0 +1,70 @@
+{
+  "status": "completed",
+  "base_commit": "6700ea8",
+  "end_time": "2026-08-11T14:59:16+02:00",
+  "epochs": 3000,
+  "hardware": {
+    "host": "hpcgpu5",
+    "gpu": "NVIDIA TITAN X (Pascal)",
+    "gpu_memory_mib": 12288,
+    "driver_version": "570.211.01",
+    "physical_gpu_indices": {
+      "leader": 0,
+      "follower": 3
+    }
+  },
+  "configuration": {
+    "dataset": "bimanual_dual_push_buttons",
+    "demonstrations": 200,
+    "batch_size": 64,
+    "action_dim_per_arm": 8,
+    "obs_dim": 35,
+    "horizon": 16,
+    "n_obs_steps": 2,
+    "n_action_steps": 8,
+    "fragment_length": 17,
+    "unet_down_dims": [
+      64,
+      128,
+      256
+    ],
+    "canonicalize_quaternions": false
+  },
+  "leader": {
+    "arm": "left",
+    "epochs": 3000,
+    "global_cond_dim": 70,
+    "checkpoint": "leader/latest.pt",
+    "kind": "EMA",
+    "bytes": 22159644,
+    "sha256": "81b1e38a6c69f64c72ef4b326ae64a1ff94dfb00da13da1de4ddf928bc299749"
+  },
+  "follower": {
+    "arm": "right",
+    "condition_on_arm": "left",
+    "epochs": 3000,
+    "global_cond_dim": 198,
+    "checkpoint": "follower/latest.pt",
+    "kind": "EMA",
+    "bytes": 23997238,
+    "sha256": "25f3ab3663768ee25ab254eb43d99d66e67119116d180549d59fbd0bbd0ef413"
+  },
+  "software": {
+    "python": "3.10.20",
+    "torch": "2.1.0+cu118",
+    "torchvision": "0.16.0+cu118",
+    "cuda_build": "11.8",
+    "numpy": "1.26.4"
+  },
+  "evaluation": {
+    "performed": true,
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "successful_seeds": 2,
+    "success_rate": "2/3",
+    "controller_correction": false
+  }
+}
