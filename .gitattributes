@@ -4,3 +4,6 @@ training_runs/2026-08-05_diffusion_leader_follower/follower/latest.pt filter=lfs
 training_runs/2026-08-05_peract2/latest.pt filter=lfs diff=lfs merge=lfs -text
 training_runs/2026-08-05_peract_lf/leader/latest.pt filter=lfs diff=lfs merge=lfs -text
 training_runs/2026-08-05_peract_lf/follower/latest.pt filter=lfs diff=lfs merge=lfs -text
+training_runs/2026-08-10_diffusion_joint/latest.pt filter=lfs diff=lfs merge=lfs -text
+training_runs/2026-08-10_diffusion_leader_follower/leader/latest.pt filter=lfs diff=lfs merge=lfs -text
+training_runs/2026-08-10_diffusion_leader_follower/follower/latest.pt filter=lfs diff=lfs merge=lfs -text
