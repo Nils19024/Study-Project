@@ -1,18 +1,12 @@
 {
-  "status": "completed",
-  "base_commit": "8d58ebd",
   "notebook": "own_code/notebooks/train_PerAct2.ipynb",
   "start_time": "2026-08-05T15:13:52+02:00",
-  "end_time": "2026-08-07T15:21:22+02:00",
   "elapsed": "48:07:30",
   "training_iterations": 40000,
   "model_parameters": 66180794,
   "hardware": {
     "host": "hpcgpu5",
-    "gpu": "NVIDIA TITAN X (Pascal)",
-    "physical_gpu_index": 0,
-    "gpu_memory_mib": 12288,
-    "driver_version": "570.211.01"
+    "gpu": "NVIDIA TITAN X (Pascal)"
   },
   "configuration": {
     "method": "BIMANUAL_PERACT",
@@ -44,21 +38,6 @@
         45.0
       ]
     }
-  },
-  "software": {
-    "python": "3.10.20",
-    "torch": "2.1.0+cu121",
-    "torchvision": "0.16.0+cu121",
-    "cuda_build": "12.1",
-    "numpy": "1.26.4",
-    "hydra": "1.3.4"
-  },
-  "checkpoint": {
-    "path": "latest.pt",
-    "source_filename": "QAttentionAgent_layer0.pt",
-    "kind": "PerAct2",
-    "bytes": 332154847,
-    "sha256": "c4fa059dcda89ab102d8295c0dfd63ebaa1be8bf246b4f7d33a652d05f968e94"
   },
   "evaluation_performed": false
 }
