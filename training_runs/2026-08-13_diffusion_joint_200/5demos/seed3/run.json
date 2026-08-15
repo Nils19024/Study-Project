@@ -1,0 +1,46 @@
+{
+  "status": "completed",
+  "start_time": "2026-08-13T17:52:15+02:00",
+  "end_time": "2026-08-13T18:52:34+02:00",
+  "epochs": 200,
+  "seed": 3,
+  "model_parameters": 5526274,
+  "hardware": {
+    "host": "hpcgpu5",
+    "gpu": "NVIDIA TITAN X (Pascal)",
+    "visible_gpu": "2",
+    "gpu_memory_mib": 12183,
+    "physical_gpu_index": 2
+  },
+  "configuration": {
+    "dataset": "bimanual_dual_push_buttons",
+    "dataset_root": "own_code/artifacts/datasets/tapas_diffusion/bimanual_dual_push_buttons",
+    "demonstrations": 5,
+    "batch_size": 64,
+    "action_dim": 16,
+    "obs_dim": 35,
+    "horizon": 16,
+    "n_obs_steps": 2,
+    "n_action_steps": 8,
+    "unet_down_dims": [
+      64,
+      128,
+      256
+    ],
+    "canonicalize_quaternions": false,
+    "ema_checkpoint": true
+  },
+  "software": {
+    "python": "3.10.20",
+    "torch": "2.1.0+cu118",
+    "cuda_build": "11.8",
+    "numpy": "1.26.4"
+  },
+  "checkpoint": {
+    "path": "latest.pt",
+    "kind": "policy",
+    "bytes": 22175054,
+    "sha256": "e85b2aae812a131f676f04db71cca250915b026fd42a54e3e369aae0c3c505cd"
+  },
+  "base_commit": "2c26802b27f8d39c2114763aa5bdf1f0c5639d7e"
+}
