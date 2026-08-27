@@ -49,7 +49,7 @@ class UnimanualRobot(Robot):
         self.arm = arm
         self.gripper = gripper
 
-    def release_gripper(self):
+    def release_gripper(self, name: str = 'both'):
         self.gripper.release()
 
     def initial_state(self):

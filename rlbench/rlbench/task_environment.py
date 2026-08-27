@@ -167,8 +167,8 @@ class TaskEnvironment(object):
             attempts = max_attempts
             while attempts > 0:
                 random_seed = np.random.get_state()
-                self.reset()
                 try:
+                    self.reset()
                     demo = self._scene.get_demo(
                         callable_each_step=callable_each_step)
                     demo.random_seed = random_seed

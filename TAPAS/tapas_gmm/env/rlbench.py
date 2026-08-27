@@ -52,6 +52,7 @@ from rlbench.tasks import (
 from rlbench.bimanual_tasks.bimanual_dual_push_buttons import (
     BimanualDualPushButtons
 )
+from rlbench.bimanual_tasks.bimanual_handover_item import BimanualHandoverItem
 
 from tapas_gmm.env import Environment
 from tapas_gmm.env.environment import BaseEnvironment, BaseEnvironmentConfig
@@ -107,6 +108,7 @@ task_switch = {
     "StackBlocks": StackBlocks,
 
     "BimanualDualPushButtons": BimanualDualPushButtons,
+    "BimanualHandoverItem": BimanualHandoverItem,
 }
 
 
