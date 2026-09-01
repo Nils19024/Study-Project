@@ -1,0 +1,30 @@
+{
+  "status": "completed",
+  "start_time": "2026-08-26T16:15:31+02:00",
+  "seed": 5,
+  "demonstrations": 5,
+  "base_commit": "9b0fdcde058bc055892c3531b44f45a385f814ef",
+  "configuration": {
+    "dataset": "bimanual_dual_push_buttons",
+    "dataset_root": "/var/tmp/schmidtn-diffusion/Study-Project/own_code/artifacts/datasets/tapas_diffusion/bimanual_dual_push_buttons",
+    "demonstrations": 5,
+    "n_components": 10,
+    "model_type": "HMM",
+    "fitting_stages": [
+      "INIT",
+      "EM_HMM"
+    ],
+    "max_em_iterations": 50,
+    "position_only": false,
+    "add_time_component": true,
+    "add_gripper_action": true,
+    "demo_order_seeded": true
+  },
+  "end_time": "2026-08-26T16:21:31+02:00",
+  "checkpoint": {
+    "path": "latest.pkl",
+    "bytes": 7964557
+  },
+  "average_log_likelihood": "(6729.6174190869915, 2273.158483419269, 2207.829491723018, 1739.7092692574734)",
+  "likelihood_shape": "(4,)"
+}
