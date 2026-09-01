@@ -1,0 +1,152 @@
+{
+  "status": "completed",
+  "start_time": "2026-08-23T10:45:47+02:00",
+  "epochs": 2000,
+  "seed": 2,
+  "demonstrations": 5,
+  "base_commit": "9b0fdcde058bc055892c3531b44f45a385f814ef",
+  "hardware": {
+    "host": "hpcgpu5",
+    "visible_gpu": "1",
+    "gpu": "NVIDIA TITAN X (Pascal)",
+    "gpu_memory_mib": 12183
+  },
+  "configuration": {
+    "dataset": "bimanual_dual_push_buttons",
+    "dataset_root": "/var/tmp/schmidtn-diffusion/Study-Project/own_code/artifacts/datasets/tapas_diffusion/bimanual_dual_push_buttons",
+    "demonstrations": 5,
+    "batch_size": 64,
+    "leader_action_dim": 8,
+    "follower_action_dim": 8,
+    "obs_dim": 35,
+    "horizon": 16,
+    "n_obs_steps": 2,
+    "n_action_steps": 8,
+    "unet_down_dims": [
+      64,
+      128,
+      256
+    ],
+    "canonicalize_quaternions": false,
+    "ema": true,
+    "checkpoint_interval": 200,
+    "cache_enabled": true,
+    "learning_rate": 3e-05,
+    "lr_scheduler": "linear",
+    "lr_warmup_steps": 50
+  },
+  "software": {
+    "python": "3.10.20",
+    "torch": "2.1.0+cu118",
+    "numpy": "1.26.4",
+    "cuda_build": "11.8"
+  },
+  "cache": {
+    "enabled": true,
+    "samples": 474,
+    "build_seconds": 2.329
+  },
+  "leader_start_time": "2026-08-23T10:45:50+02:00",
+  "leader_end_time": "2026-08-23T11:05:42+02:00",
+  "leader_training_seconds": 1192.162,
+  "leader_checkpoint": {
+    "path": "leader/latest.pt",
+    "bytes": 22159644,
+    "sha256": "380ed350ec4932eea299446e99b5b03dd79ea5ad2d56b8d608ed639f160e34e6"
+  },
+  "follower_start_time": "2026-08-23T11:05:42+02:00",
+  "follower_end_time": "2026-08-23T11:26:23+02:00",
+  "follower_training_seconds": 1240.853,
+  "follower_checkpoint": {
+    "path": "follower/latest.pt",
+    "bytes": 23997238,
+    "sha256": "cdcc3080c643e66fb782223413dd92dcdaef11206b293d7f9a5a2cca319279e1"
+  },
+  "checkpoints": {
+    "leader": [
+      {
+        "epoch": 200,
+        "path": "leader/leader_step_200_ema.pt"
+      },
+      {
+        "epoch": 400,
+        "path": "leader/leader_step_400_ema.pt"
+      },
+      {
+        "epoch": 600,
+        "path": "leader/leader_step_600_ema.pt"
+      },
+      {
+        "epoch": 800,
+        "path": "leader/leader_step_800_ema.pt"
+      },
+      {
+        "epoch": 1000,
+        "path": "leader/leader_step_1000_ema.pt"
+      },
+      {
+        "epoch": 1200,
+        "path": "leader/leader_step_1200_ema.pt"
+      },
+      {
+        "epoch": 1400,
+        "path": "leader/leader_step_1400_ema.pt"
+      },
+      {
+        "epoch": 1600,
+        "path": "leader/leader_step_1600_ema.pt"
+      },
+      {
+        "epoch": 1800,
+        "path": "leader/leader_step_1800_ema.pt"
+      },
+      {
+        "epoch": 2000,
+        "path": "leader/leader_step_2000_ema.pt"
+      }
+    ],
+    "follower": [
+      {
+        "epoch": 200,
+        "path": "follower/follower_step_200_ema.pt"
+      },
+      {
+        "epoch": 400,
+        "path": "follower/follower_step_400_ema.pt"
+      },
+      {
+        "epoch": 600,
+        "path": "follower/follower_step_600_ema.pt"
+      },
+      {
+        "epoch": 800,
+        "path": "follower/follower_step_800_ema.pt"
+      },
+      {
+        "epoch": 1000,
+        "path": "follower/follower_step_1000_ema.pt"
+      },
+      {
+        "epoch": 1200,
+        "path": "follower/follower_step_1200_ema.pt"
+      },
+      {
+        "epoch": 1400,
+        "path": "follower/follower_step_1400_ema.pt"
+      },
+      {
+        "epoch": 1600,
+        "path": "follower/follower_step_1600_ema.pt"
+      },
+      {
+        "epoch": 1800,
+        "path": "follower/follower_step_1800_ema.pt"
+      },
+      {
+        "epoch": 2000,
+        "path": "follower/follower_step_2000_ema.pt"
+      }
+    ]
+  },
+  "end_time": "2026-08-23T11:26:23+02:00"
+}
