@@ -3728,9 +3728,11 @@ class AutoTPGMM(TPGMM):
     def _online_step_time(
         self, t_curr: float | np.ndarray, time_scale: float = 1.0
     ) -> float | np.ndarray:
-        t_next = t_curr + time_scale * self._t_delta
-
         idx = self._online_active_segment
+        if self._online_hmm_cascade is None:
+            t_next = t_curr + time_scale * self._segment_t_delta[idx]
+        else:
+            t_next = t_curr + time_scale * self._t_delta
 
         # Naive time sequencing: just switch to the next segment when the time is up.
         if (
