@@ -643,7 +643,6 @@ class GMMPolicy(Policy):
             or self._prediction_is_delta_pose
             or self._pos_lag_thresh is None
             or action_succes
-            or ee_stuck
         )
 
         return do_step
