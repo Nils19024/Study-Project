@@ -498,7 +498,7 @@ class TPGMM:
 
         return reg_kwargs
 
-    @cached_property
+    @property
     def _trans_cov_mask(self) -> np.ndarray:
         """
         Using diagonal regularization for the transition covariance matrix.
@@ -513,8 +513,7 @@ class TPGMM:
         mask = np.eye(dim)
 
         if self.config.trans_cov_mask_t_pos_corr:
-            mask[:4, 0] = 1
-            mask[0, :4] = 1
+            mask[:4, :4] = 1
 
         return mask
 
@@ -1737,17 +1736,9 @@ class TPGMM:
         extras = {}
 
         if self.use_riemann:
-            if fix_frames:
-                cond = joint_model.gmr_from_np(
-                    input_data, i_in=m_in, i_out=m_out, initial_obs=first_step
-                )[0]
-                # inp = joint_model.np_to_manifold_to_np(input_data[:dim], i_in=m_in)
-            else:
-                # NOTE The translation of marginals and computation of the joint
-                # model is already implemented in online_predict. However, for a
-                # HMM, the thusly updated joint_model misses the observation history
-                # in online_forward_message. Need to fix that.
-                raise NotImplementedError
+            cond = joint_model.gmr_from_np(
+                input_data, i_in=m_in, i_out=m_out, initial_obs=first_step
+            )[0]
 
             if sample:
                 prediction = cond.sample()
@@ -2863,12 +2854,15 @@ class AutoTPGMM(TPGMM):
             fs_fitting_actions = fitting_actions
 
         self._fix_frames = fix_frames
+        fs_fix_frames = self.config.frame_selection.fix_frames
+        if fs_fix_frames is COPY_FROM_MAIN_FITTING:
+            fs_fix_frames = fix_frames
 
         if global_frames:
             logger.info("Generating candidate frames", filter=False)
             candidate_ic, rel_candidate_ic, frame_idcs = self._select_frames(
                 demos,
-                fix_frames,
+                fs_fix_frames,
                 fs_init_strategy,
                 fs_fitting_actions,
                 self.config.frame_selection.rel_score_threshold,
@@ -2910,7 +2904,7 @@ class AutoTPGMM(TPGMM):
                     segment_frame_idcs,
                 ) = self._select_frames(
                     segment,
-                    fix_frames,
+                    fs_fix_frames,
                     init_strategy,
                     fs_fitting_actions,
                     self.config.frame_selection.rel_score_threshold,
@@ -3756,15 +3750,6 @@ class AutoTPGMM(TPGMM):
         heal_time_variance: bool = False,
         per_segment: bool = False,
     ) -> tuple[np.ndarray, dict[str, Any]]:
-        if not self._fix_frames:
-            raise NotImplementedError(
-                "Online prediction of ATPGMM only implemented for fixed frames. "
-                "Currently batch-computing the joint models in the beginning to "
-                "prevent lags due to computing the joint model of the current "
-                "segment on the fly. "
-                "Could store the marginals and transform them on-demand (maybe "
-                "in a separate thread to prevent lags, or pause the execution)."
-            )
         assert self._fix_frames is not None
 
         per_segment = per_segment or len(self.segment_gmms) == 1
@@ -3907,6 +3892,15 @@ class AutoTPGMM(TPGMM):
                     heal_time_variance=heal_time_variance,
                     use_riemann=self.use_riemann,
                 )
+
+                if self._online_joint_models is not None:
+                    previous = self._online_joint_models[i]
+                    if previous is not None:
+                        for old_model, new_model in zip(
+                            previous, (left_joint_model, right_joint_model)
+                        ):
+                            if hasattr(old_model, "_alpha_tmp"):
+                                new_model._alpha_tmp = old_model._alpha_tmp.copy()
 
                 joint_models.append((left_joint_model, right_joint_model))
                 trans_marginals.append((left_trans_margs, right_trans_margs))

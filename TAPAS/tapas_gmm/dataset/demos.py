@@ -167,6 +167,7 @@ def get_frames_from_obs(
     add_world_frame: bool,
     indeces: Sequence[int] | None,
     add_action_dim: bool,
+    init_ee_pose: torch.Tensor | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Get object frames from the observation. For online inference. Meant to replicate
@@ -187,6 +188,9 @@ def get_frames_from_obs(
         if indeces is not None:
             object_poses = [object_poses[i] for i in indeces]
 
+    if init_ee_pose is None:
+        init_ee_pose = obs.ee_pose
+
     if add_init_ee_pose_as_frame and obs.ee_pose.shape[0] == 14:
         left_object_poses = []
         right_object_poses = []
@@ -195,8 +199,8 @@ def get_frames_from_obs(
             left_object_poses.append(identity_7_pose)
             right_object_poses.append(identity_7_pose)
 
-        left_object_poses.append(obs.ee_pose[:7])
-        right_object_poses.append(obs.ee_pose[7:])
+        left_object_poses.append(init_ee_pose[:7])
+        right_object_poses.append(init_ee_pose[7:])
 
         left_object_poses += object_poses
         right_object_poses += object_poses
@@ -210,7 +214,7 @@ def get_frames_from_obs(
             object_poses = [identity_7_pose] + object_poses
 
         if add_init_ee_pose_as_frame:
-            object_poses = [obs.ee_pose] + object_poses
+            object_poses = [init_ee_pose] + object_poses
 
         pose_tensor = torch.stack(object_poses)
 
@@ -1066,7 +1070,10 @@ class Demos:
                 transforms_left = self.world2frames_left
                 transforms_right = self.world2frames_right
 
-                if subsampled:
+                if fixed_frames:
+                    transforms_left = torch.stack([t[:, :1] for t in transforms_left])
+                    transforms_right = torch.stack([t[:, :1] for t in transforms_right])
+                elif subsampled:
                     transforms_left = self.stacked_world2frames_left
                     transforms_right = self.stacked_world2frames_right
 
@@ -3339,10 +3346,10 @@ class DemosSegment(Demos):
         # TODO: make this per trajectory? Ie remove the mean?
         # when using max ss, should also take max here.
         padded_start_idc = (
-            np.mean(start_idcs) + (repeat_first_step + repeat_first_step) * segment_no
+            np.mean(start_idcs) + (repeat_first_step + repeat_final_step) * segment_no
         )
         padded_stop_idcs = np.mean(stop_idcs) + (
-            repeat_first_step + repeat_first_step
+            repeat_first_step + repeat_final_step
         ) * (segment_no + 1)
         padded_total_len = (
             self.full_demos.ss_len

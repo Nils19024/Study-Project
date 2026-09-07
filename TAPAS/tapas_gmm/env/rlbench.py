@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Any
 
-import mani_skill2
 import numpy as np
 import torch
 from loguru import logger
@@ -237,10 +236,12 @@ class RLBenchEnvironment(BaseEnvironment):
         """
         For using the mplib Planner, eg for TOPP(RA) in gmm policy.
         """
+        import mani_skill2
         return f"{mani_skill2.PACKAGE_ASSET_DIR}/descriptions/panda_v2.urdf"
 
     @property
     def _srdf_path(self) -> str:
+        import mani_skill2
         return f"{mani_skill2.PACKAGE_ASSET_DIR}/descriptions/panda_v2.srdf"
 
     def launch_simulation_env(

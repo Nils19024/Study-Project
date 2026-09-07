@@ -81,7 +81,8 @@ def compute_angle_between_quaternions(q, r):
     :rtype:
     """
 
-    theta = 2 * np.arccos(2 * np.dot(q, r) ** 2 - 1)
+    argument = np.clip(2 * np.dot(q, r) ** 2 - 1, -1.0, 1.0)
+    theta = np.arccos(argument)
     return theta
 
 
