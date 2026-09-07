@@ -125,6 +125,7 @@ class GMMPolicy(Policy):
         self._add_init_ee_pose_as_frame = None
         self._add_world_frame = None
 
+        self._episode_init_ee_pose = None
         self._last_prediction = None
         self._last_pose = None
         self._frames_initialized = False
@@ -174,9 +175,13 @@ class GMMPolicy(Policy):
 
         self._last_prediction = None
         self._last_pose = None
+        self._episode_init_ee_pose = None
         self._frames_initialized = False
 
     def get_frames(self, obs: SceneObservation) -> tuple[np.ndarray, np.ndarray]:
+        if self._episode_init_ee_pose is None:
+            self._episode_init_ee_pose = obs.ee_pose.clone()
+
         return get_frames_from_obs(
             obs=obs,
             frames_from_keypoints=self.frames_from_keypoints,
@@ -184,6 +189,7 @@ class GMMPolicy(Policy):
             add_world_frame=self._add_world_frame,
             indeces=self.kp_indeces,
             add_action_dim=self._model_contains_action_dim,
+            init_ee_pose=self._episode_init_ee_pose,
         )
 
     # TODO: clean up and refactor (disentangle the nested cases)

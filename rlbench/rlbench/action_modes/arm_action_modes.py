@@ -316,9 +316,8 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
 
         colliding_shapes = []
         if not ignore_collisions:
-            if self._robot_shapes is None:
-                self._robot_shapes = arm.get_objects_in_tree(
-                    object_type=ObjectType.SHAPE)
+            robot_shapes = arm.get_objects_in_tree(
+                object_type=ObjectType.SHAPE)
             # First check if we are colliding with anything
             colliding = arm.check_arm_collision()
             if colliding:
@@ -328,7 +327,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
                     s for s in scene.pyrep.get_objects_in_tree(
                         object_type = ObjectType.SHAPE) if (
                             s.is_collidable() and
-                            s not in self._robot_shapes and
+                            s not in robot_shapes and
                             s not in grasped_objects and
                             arm.check_arm_collision(
                                 s))]
@@ -367,10 +366,14 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
                         trials_per_goal=5,
                         algorithm=Algos.RRTConnect
                     )
+                    return path
         except ConfigurationPathError as e:
             raise InvalidActionError(
                 'A path could not be found. Most likely due to the target '
                 'being inaccessible or a collison was detected.') from e
+        finally:
+            for shape in colliding_shapes:
+                shape.set_collidable(True)
 
 
     def action_shape(self, scene: Scene) -> tuple:

@@ -307,7 +307,11 @@ class BimanualDiscrete(Discrete):
                 self._actuate(scene, action)
 
 
-        if right_current_ee != right_action:
+        if left_action == 1.0 and left_current_ee != left_action:
+            scene.robot.left_gripper.release()
+
+        if right_current_ee != right_action or (
+                right_action == 0.0 and left_action == 1.0 and left_current_ee != left_action):
             if right_action == 0.0 and self._attach_grasped_objects:
                 # If gripper close action, the check for grasp.
                 left_grasped_objects = scene.robot.left_gripper.get_grasped_objects()
@@ -319,7 +323,8 @@ class BimanualDiscrete(Discrete):
             else:
                 # If gripper open action, the check for un-grasp.
                 scene.robot.right_gripper.release()
-        if left_current_ee != left_action:
+        if left_current_ee != left_action or (
+                left_action == 0.0 and right_action == 1.0 and right_current_ee != right_action):
             if left_action == 0.0 and self._attach_grasped_objects:
                 right_grasped_objects = scene.robot.right_gripper.get_grasped_objects()
                 # If gripper close action, the check for grasp.                
@@ -328,9 +333,6 @@ class BimanualDiscrete(Discrete):
                         logging.warning("Object with name %s is already grasped by right robot", g_obj.get_name())
                     else:
                         scene.robot.left_gripper.grasp(g_obj)
-            else:
-                # If gripper open action, the check for un-grasp.
-                scene.robot.left_gripper.release()
 
         if right_current_ee != right_action or left_current_ee != left_action:
             if self._detach_before_open:
