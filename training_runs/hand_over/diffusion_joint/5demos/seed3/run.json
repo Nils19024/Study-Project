@@ -1,0 +1,128 @@
+{
+  "status": "completed",
+  "start_time": "2026-09-22T11:32:04.496962+00:00",
+  "end_time": "2026-09-22T12:48:42.423227+00:00",
+  "epochs": 3000,
+  "published_epochs": [
+    200,
+    1000,
+    2000
+  ],
+  "seed": 3,
+  "demonstrations": 5,
+  "base_commit": "efd94383d417511cc91810824b524a09fd12b030",
+  "hardware": {
+    "host": "hpcgpu5",
+    "physical_gpu_index": 2,
+    "gpu": "NVIDIA GeForce RTX 2080 Ti",
+    "gpu_memory_mib": 11264
+  },
+  "configuration": {
+    "dataset": "bimanual_handover_item",
+    "dataset_root": "/var/tmp/schmidtn-diffusion/Study-Project/own_code/artifacts/datasets/tapas_diffusion/bimanual_handover_item",
+    "demonstrations": 5,
+    "batch_size": 64,
+    "action_dim": 16,
+    "obs_dim": 112,
+    "horizon": 16,
+    "n_obs_steps": 2,
+    "n_action_steps": 8,
+    "unet_down_dims": [
+      64,
+      128,
+      256
+    ],
+    "canonicalize_quaternions": false,
+    "ema": true,
+    "checkpoint_interval": 200,
+    "cache_enabled": true,
+    "learning_rate": 3e-05,
+    "lr_scheduler": "linear",
+    "lr_warmup_steps": 50
+  },
+  "software": {
+    "python": "3.10.21",
+    "torch": "2.1.0+cu118",
+    "numpy": "1.26.4",
+    "cuda_build": "11.8"
+  },
+  "model_parameters": 6077904,
+  "training_seconds": 4597.926265001297,
+  "training_time_source": "Jupyter execution timestamps of training cell; checkpoint times from original file modification timestamps relative to the same cell start",
+  "training_updates": 60000,
+  "first_train_loss": 1.0889828205108643,
+  "last_train_loss": 0.00674259290099144,
+  "checkpoints": [
+    {
+      "epoch": 200,
+      "path": "joint_step_200_ema.pt",
+      "kind": "EMA",
+      "saved_at": "2026-09-22T11:37:46.327819+00:00",
+      "training_seconds": 341.83085656166077,
+      "raw": {
+        "path": "joint_step_200.pt",
+        "bytes": 24383096,
+        "sha256": "a41d73b4f5a0dadbc5ab608ff423269bf4ce26151132e6a427bdd2d3f0bae3db"
+      },
+      "ema": {
+        "path": "joint_step_200_ema.pt",
+        "bytes": 24383760,
+        "sha256": "7250ed618ea183aaf5dbe60850c9150c43b7cdf534d1cc7527977b4b68fe076b"
+      }
+    },
+    {
+      "epoch": 1000,
+      "path": "joint_step_1000_ema.pt",
+      "kind": "EMA",
+      "saved_at": "2026-09-22T11:58:04.328505+00:00",
+      "training_seconds": 1559.83154296875,
+      "raw": {
+        "path": "joint_step_1000.pt",
+        "bytes": 24383262,
+        "sha256": "c302c849bd6f9dc307dd4bb1533d6308ce10e6d0f54be626dd158f1f2fb198b6"
+      },
+      "ema": {
+        "path": "joint_step_1000_ema.pt",
+        "bytes": 24383926,
+        "sha256": "bb26e06b7c0fb6761b8a92dba4ac9d2f6a75e5cc6b0c1964fe77fd1a184e80a8"
+      }
+    },
+    {
+      "epoch": 2000,
+      "path": "joint_step_2000_ema.pt",
+      "kind": "EMA",
+      "saved_at": "2026-09-22T12:23:23.633366+00:00",
+      "training_seconds": 3079.136403799057,
+      "raw": {
+        "path": "joint_step_2000.pt",
+        "bytes": 24383262,
+        "sha256": "132264cfbf7c37ee00c0eae39cb7b1b6fd361ffff39d419a314dcb84e827e511"
+      },
+      "ema": {
+        "path": "joint_step_2000_ema.pt",
+        "bytes": 24383926,
+        "sha256": "f58f056350ab9cde82d4981241981db40fa04db1a8374ce2b864d9379e3873e4"
+      }
+    }
+  ],
+  "checkpoint": {
+    "path": "joint_step_2000_ema.pt",
+    "epoch": 2000,
+    "kind": "EMA",
+    "bytes": 24383926,
+    "sha256": "f58f056350ab9cde82d4981241981db40fa04db1a8374ce2b864d9379e3873e4",
+    "load_verified": true
+  },
+  "source": {
+    "notebook": "own_code/notebooks/train_Diffusion_joint.ipynb",
+    "notebook_sha256": "f8ebbdb91252000023d12740d2603e90e48687ee2576b481a0ecf5433d34f539",
+    "training_source_hashes": {
+      "TAPAS/tapas_gmm/dataset/bc.py": "af7b99a5e98321305bf6cac2625b41990badae173c4eded0e6b336f02547c67a",
+      "TAPAS/tapas_gmm/utils/select_gpu.py": "93794474eef2d11b68e5213ed92a4576c2d4fa1b4fc0304b621c96845ee57e72"
+    },
+    "uncommitted_training_changes": true
+  },
+  "evaluation": {
+    "performed": false
+  }
+}
