@@ -1,0 +1,89 @@
+{
+  "id": "push_button_tapas_100demos_seed2",
+  "task": "bimanual_dual_push_buttons",
+  "model": "tapas",
+  "demos": 100,
+  "seed": 2,
+  "epochs": null,
+  "status": "completed",
+  "worker_kind": "cpu",
+  "priority": 102,
+  "estimated_seconds": 14400,
+  "notebook": "own_code/notebooks/train_TAPAS_bimanual.ipynb",
+  "output": "training_runs/push_button/tapas/100demos/seed2",
+  "base_commit": "353fd387e7a915d722449f1800ea921083bc82a0",
+  "configuration": {
+    "dataset": "bimanual_dual_push_buttons",
+    "demonstrations": 100,
+    "n_components": 10,
+    "model_type": "HMM",
+    "fitting_stages": [
+      "INIT",
+      "EM_HMM"
+    ],
+    "max_em_iterations": 50,
+    "fitting_fix_frames": true,
+    "demo_order_seeded": true
+  },
+  "source_hashes": {
+    "TAPAS/tapas_gmm/dataset/bc.py": "af7b99a5e98321305bf6cac2625b41990badae173c4eded0e6b336f02547c67a",
+    "TAPAS/tapas_gmm/policy/diffusion.py": "7acc961ff2e6201f14d3044cf7cbce4417c97ed621394fcefc368d8986a8cb00",
+    "TAPAS/tapas_gmm/utils/select_gpu.py": "93794474eef2d11b68e5213ed92a4576c2d4fa1b4fc0304b621c96845ee57e72",
+    "TAPAS/tapas_gmm/behavior_cloning.py": "f8dd8590f19942a35139b73d902480ee3075feb6a0deb0b861cec883936518cd",
+    "TAPAS/tapas_gmm/policy/models/tpgmm.py": "e2711e0128bf462a43c8515296fc91125136c2fab52f1369b893cf72eef2e409",
+    "TAPAS/tapas_gmm/dataset/demos.py": "13e9a32c077428586f456da99f642d1cc60046822e2103cd3cd379dce05b2efd",
+    "TAPAS/tapas_gmm/utils/data_loading.py": "93ded6e820af892a8d0ae5a39f1e46421ef23e4e88e852aa625a284ec3aa9732",
+    "own_code/notebooks/train_TAPAS_bimanual.ipynb": "98477439601aa6e366fb2fc0ba9b064405c4dc972d5a12b4979b590d3618c8d3"
+  },
+  "worker": "cpu1",
+  "pid": 37383,
+  "start_time": "2026-09-22T18:09:26.654613+00:00",
+  "execution_method": "Jupyter NotebookClient",
+  "runtime_instrumentation": "Metadata and cell timing only; unchanged training cells",
+  "cell_seconds": {
+    "0": 3.7521687490007025,
+    "1": 0.008792929998890031,
+    "2": 0.010919820000708569,
+    "3": 0.006979333997151116,
+    "4": 0.0067968510011269245,
+    "5": 15.208053050999297,
+    "6": 0.9059555560015724,
+    "7": 0.007466154002031544,
+    "8": 0.006122087001131149,
+    "9": 1025.274193450001,
+    "10": 2.4181073859981552,
+    "11": 13.32764743199732
+  },
+  "training_cells": {
+    "tapas": {
+      "cell": 9,
+      "start_time": "2026-09-22T18:09:47.240304+00:00",
+      "start_epoch_seconds": 1790100587.2403092,
+      "end_time": "2026-09-22T18:26:52.514476+00:00",
+      "seconds": 1025.274193450001
+    }
+  },
+  "checkpoints": [
+    {
+      "path": "latest.pkl",
+      "bytes": 150527974,
+      "sha256": "cbfc20c2d6668611464eaf8544397454303113bd44a1ed301325dbdb74a29041",
+      "saved_at": "2026-09-22T18:26:54.929659+00:00"
+    }
+  ],
+  "current_cell": 11,
+  "updated_at": "2026-09-22T18:26:54.935841+00:00",
+  "end_time": "2026-09-22T18:27:11.235836+00:00",
+  "demonstrations": 100,
+  "training_seconds": 1025.274193450001,
+  "total_execution_seconds": 1064.5795208430027,
+  "evaluation": {
+    "performed": false
+  },
+  "checkpoint": {
+    "path": "latest.pkl",
+    "bytes": 150527974,
+    "sha256": "cbfc20c2d6668611464eaf8544397454303113bd44a1ed301325dbdb74a29041",
+    "saved_at": "2026-09-22T18:26:54.929659+00:00"
+  }
+}
