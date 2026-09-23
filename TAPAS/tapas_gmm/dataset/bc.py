@@ -172,8 +172,8 @@ class BCDataset(Dataset):
             force_skip_rgb=force_skip_rgb or not (force_load_raw or debug_encoding),
             extra_attr=self.config.extra_attr,
         )
-        pre_padding_td = torch.zeros_like(traj[0])
-        post_padding_td = torch.zeros_like(traj[0])
+        pre_padding_td = traj[0].clone()
+        post_padding_td = traj[-1].clone()
         pre_padding_td.feedback = traj[0].feedback
         post_padding_td.feedback = traj[-1].feedback
         # TODO: also pad the other attributes with proper values? Eg unit quaternions.
