@@ -525,11 +525,11 @@ class DiffusionPolicy(Policy, ModuleAttrMixin):
                     action_stack[..., 10:14]
                 )
                 traj = RobotTrajectory.from_np(
-                    ee=action_stack[..., :14], gripper=action_stack[..., 14:]
+                    ee=action_stack[..., :14], gripper=2 * action_stack[..., 14:] - 1
                 )
             else:
                 traj = RobotTrajectory.from_np(
-                    ee=action_stack[..., :7], gripper=action_stack[..., 7]
+                    ee=action_stack[..., :7], gripper=2 * action_stack[..., 7] - 1
                 )
 
         return traj, pred_dict
