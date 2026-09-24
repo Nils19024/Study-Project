@@ -1,0 +1,110 @@
+{
+  "id": "put_bottle_in_fridge_tapas_5demos_seed1",
+  "task": "bimanual_put_bottle_in_fridge",
+  "model": "tapas",
+  "demos": 5,
+  "seed": 1,
+  "leader_arm": "left",
+  "epochs": null,
+  "worker_kind": "gpu",
+  "priority": [
+    5,
+    1,
+    1
+  ],
+  "estimated_seconds": 475,
+  "status": "completed",
+  "output": "training_runs/put_bottle_in_fridge/tapas/5demos/seed1",
+  "notebook": "own_code/notebooks/train_TAPAS_bimanual.ipynb",
+  "base_commit": "a49fb1b89c2075a6fb56d7b275250c4140d70188",
+  "source_hashes": {
+    "own_code/notebooks/train_Diffusion_joint.ipynb": "6a2561290efbcddd4dbac231cbd0ec6798f986da98cd7a6fc21be5bcb6ca910a",
+    "own_code/notebooks/train_Diffusion_leader_follower.ipynb": "0ad2ae4c5ca5b98c7ca4d18413bfcdfd692674b8976513ad617ddcc464cf94f4",
+    "own_code/notebooks/train_TAPAS_bimanual.ipynb": "98477439601aa6e366fb2fc0ba9b064405c4dc972d5a12b4979b590d3618c8d3",
+    "TAPAS/tapas_gmm/env/rlbench.py": "0fbf1dc5a804a979887acdd595423d246eb1bb2441d89b1002fce539ae5a23a8",
+    "TAPAS/tapas_gmm/encoder/encoder.py": "fee7e406092203d9ec1c0429ffafeea9b7595a2310426d97753637b5de351ea3",
+    "TAPAS/tapas_gmm/dataset/scene.py": "99526fe9fbd1a56a5709c1db53a7e2c951564a1a04222acf9d9e9b961b1acccf",
+    "TAPAS/tapas_gmm/dataset/bc.py": "af7b99a5e98321305bf6cac2625b41990badae173c4eded0e6b336f02547c67a",
+    "TAPAS/tapas_gmm/policy/diffusion.py": "7acc961ff2e6201f14d3044cf7cbce4417c97ed621394fcefc368d8986a8cb00",
+    "TAPAS/tapas_gmm/utils/select_gpu.py": "93794474eef2d11b68e5213ed92a4576c2d4fa1b4fc0304b621c96845ee57e72"
+  },
+  "configuration": {
+    "n_components": 10,
+    "fix_frames": false,
+    "frame_selection_fixed": true
+  },
+  "worker": "gpu1",
+  "pid": 177765,
+  "start_time": "2026-09-23T20:19:16.654575+00:00",
+  "end_time": "2026-09-23T20:43:49.214795+00:00",
+  "attempts": [
+    {
+      "status": "failed",
+      "reason": "Missing riepybdlib on new server",
+      "start_time": "2026-09-23T20:15:21.195686+00:00",
+      "end_time": "2026-09-23T20:15:27.324524+00:00"
+    }
+  ],
+  "retry_reason": "Copied same riepybdlib revision a56cbdb from hpcgpu5",
+  "dependencies": {
+    "riepybdlib_commit": "a56cbdb",
+    "riepybdlib_statistics_sha256": "6d508557e8b7a8bab98ea31d1fc877df93694cef8df3bf418dbe25b4e88e6fe3"
+  },
+  "hardware": {
+    "host": "hpcgpu6",
+    "gpu": "NVIDIA GeForce RTX 2080 Ti",
+    "physical_gpu_index": 1,
+    "gpu_memory_mib": 11264
+  },
+  "software": {
+    "torch": "2.1.0+cu118",
+    "numpy": "1.26.4",
+    "nbclient": "0.11.0"
+  },
+  "execution_method": "Jupyter NotebookClient",
+  "runtime_instrumentation": "Metadata and cell timing; unchanged training cells; final TAPAS visualization omitted",
+  "cell_seconds": {
+    "0": 4.080187876999844,
+    "1": 0.009683561002020724,
+    "2": 0.008294637998915277,
+    "3": 0.0075010939908679575,
+    "4": 0.0070012270007282495,
+    "5": 2.7088738279999234,
+    "6": 0.12502584500180092,
+    "7": 0.006774402994778939,
+    "8": 0.004991583002265543,
+    "9": 1462.1542866429954,
+    "10": 0.6331596200034255
+  },
+  "training_cells": {
+    "tapas": {
+      "cell": 9,
+      "start_time": "2026-09-23T20:19:24.486083+00:00",
+      "start_epoch_seconds": 1790194764.4860861,
+      "end_time": "2026-09-23T20:43:46.640365+00:00",
+      "seconds": 1462.1542866429954
+    }
+  },
+  "checkpoints": [
+    {
+      "path": "latest.pkl",
+      "bytes": 111806386,
+      "sha256": "67043fbc5f57385ab44533a43a918dd875ba870804d4c4e4128c829386b2f62b",
+      "saved_at": "2026-09-23T20:43:47.279959+00:00"
+    }
+  ],
+  "current_cell": 10,
+  "updated_at": "2026-09-23T20:43:46.659133+00:00",
+  "demonstrations": 5,
+  "training_seconds": 1462.1542866429954,
+  "total_execution_seconds": 1472.556313455003,
+  "evaluation": {
+    "performed": false
+  },
+  "checkpoint": {
+    "path": "latest.pkl",
+    "bytes": 111806386,
+    "sha256": "67043fbc5f57385ab44533a43a918dd875ba870804d4c4e4128c829386b2f62b",
+    "saved_at": "2026-09-23T20:43:47.279959+00:00"
+  }
+}

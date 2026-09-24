@@ -1,0 +1,530 @@
+{
+  "id": "put_bottle_in_fridge_left_leader_5demos_seed1",
+  "task": "bimanual_put_bottle_in_fridge",
+  "model": "left_leader",
+  "demos": 5,
+  "seed": 1,
+  "leader_arm": "left",
+  "epochs": 2000,
+  "worker_kind": "gpu_queue",
+  "priority": [
+    5,
+    1,
+    2
+  ],
+  "estimated_seconds": 6250,
+  "status": "completed",
+  "output": "training_runs/put_bottle_in_fridge/diffusion_leader_follower/left_leader/5demos/seed1",
+  "notebook": "own_code/notebooks/train_Diffusion_leader_follower.ipynb",
+  "base_commit": "a49fb1b89c2075a6fb56d7b275250c4140d70188",
+  "source_hashes": {
+    "own_code/notebooks/train_Diffusion_joint.ipynb": "6a2561290efbcddd4dbac231cbd0ec6798f986da98cd7a6fc21be5bcb6ca910a",
+    "own_code/notebooks/train_Diffusion_leader_follower.ipynb": "0ad2ae4c5ca5b98c7ca4d18413bfcdfd692674b8976513ad617ddcc464cf94f4",
+    "own_code/notebooks/train_TAPAS_bimanual.ipynb": "98477439601aa6e366fb2fc0ba9b064405c4dc972d5a12b4979b590d3618c8d3",
+    "TAPAS/tapas_gmm/env/rlbench.py": "0fbf1dc5a804a979887acdd595423d246eb1bb2441d89b1002fce539ae5a23a8",
+    "TAPAS/tapas_gmm/encoder/encoder.py": "fee7e406092203d9ec1c0429ffafeea9b7595a2310426d97753637b5de351ea3",
+    "TAPAS/tapas_gmm/dataset/scene.py": "99526fe9fbd1a56a5709c1db53a7e2c951564a1a04222acf9d9e9b961b1acccf",
+    "TAPAS/tapas_gmm/dataset/bc.py": "af7b99a5e98321305bf6cac2625b41990badae173c4eded0e6b336f02547c67a",
+    "TAPAS/tapas_gmm/policy/diffusion.py": "7acc961ff2e6201f14d3044cf7cbce4417c97ed621394fcefc368d8986a8cb00",
+    "TAPAS/tapas_gmm/utils/select_gpu.py": "93794474eef2d11b68e5213ed92a4576c2d4fa1b4fc0304b621c96845ee57e72"
+  },
+  "configuration": {
+    "batch_size": 64,
+    "unet_down_dims": [
+      64,
+      128,
+      256
+    ],
+    "lr_scheduler": "linear",
+    "save_every": 200,
+    "reported_checkpoints": [
+      200,
+      1000,
+      2000
+    ],
+    "horizon": 16,
+    "n_obs_steps": 2,
+    "n_action_steps": 8,
+    "learning_rate": 3e-05
+  },
+  "dependencies": {
+    "riepybdlib_commit": "a56cbdb"
+  },
+  "worker": "gpu_queue1",
+  "pid": 179612,
+  "start_time": "2026-09-23T20:39:45.254245+00:00",
+  "hardware": {
+    "host": "hpcgpu6",
+    "gpu": "NVIDIA GeForce RTX 2080 Ti",
+    "physical_gpu_index": 1,
+    "gpu_memory_mib": 11264,
+    "cpu_threads": 4
+  },
+  "software": {
+    "torch": "2.1.0+cu118",
+    "numpy": "1.26.4",
+    "nbclient": "0.11.0"
+  },
+  "execution_method": "Jupyter NotebookClient",
+  "runtime_instrumentation": "Metadata and cell timing; unchanged training cells; final TAPAS visualization omitted",
+  "cell_seconds": {
+    "0": 3.5550036019994877,
+    "1": 0.01009973100735806,
+    "2": 0.007227561989566311,
+    "3": 0.007415985994157381,
+    "4": 0.4441418099886505,
+    "5": 3931.4542218770075,
+    "6": 3952.4440093370067
+  },
+  "training_cells": {
+    "leader": {
+      "cell": 5,
+      "start_time": "2026-09-23T20:39:50.160456+00:00",
+      "start_epoch_seconds": 1790195990.1604607,
+      "end_time": "2026-09-23T21:45:21.614658+00:00",
+      "seconds": 3931.4542218770075
+    },
+    "follower": {
+      "cell": 6,
+      "start_time": "2026-09-23T21:45:21.616892+00:00",
+      "start_epoch_seconds": 1790199921.6168978,
+      "end_time": "2026-09-23T22:51:14.060886+00:00",
+      "seconds": 3952.4440093370067
+    }
+  },
+  "checkpoints": [
+    {
+      "path": "follower/final.pt",
+      "bytes": 28604874,
+      "sha256": "8b71bb6494bf70249151df78f7671b6917ffd5c8473ceec298450dc05d1d7010",
+      "saved_at": "2026-09-23T22:51:12.404619+00:00"
+    },
+    {
+      "path": "follower/follower_step_1000.pt",
+      "bytes": 28616518,
+      "sha256": "92ef2e023ae78397226432596626bbc3e231dd41d784ea4a95f24cca6c328b3f",
+      "saved_at": "2026-09-23T22:18:24.185722+00:00",
+      "epoch": 1000,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 1982.568823814392
+    },
+    {
+      "path": "follower/follower_step_1000_ema.pt",
+      "bytes": 28617270,
+      "sha256": "8b1c4d0d553d366c9ec3c016675b9ccbb3858cefb6fe2602268513568685be89",
+      "saved_at": "2026-09-23T22:18:24.230722+00:00",
+      "epoch": 1000,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 1982.6138243675232
+    },
+    {
+      "path": "follower/follower_step_1200.pt",
+      "bytes": 28616518,
+      "sha256": "fa489f529b37b4ed51085cd90929fe090918186ecde19e270db90905c7a4e5ac",
+      "saved_at": "2026-09-23T22:24:59.408687+00:00",
+      "epoch": 1200,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 2377.7917890548706
+    },
+    {
+      "path": "follower/follower_step_1200_ema.pt",
+      "bytes": 28617270,
+      "sha256": "84de08b0d705fe0190cb3d367b9e78adc2fdddbe7efe89bf8e18555ab3321ecd",
+      "saved_at": "2026-09-23T22:24:59.453688+00:00",
+      "epoch": 1200,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 2377.8367898464203
+    },
+    {
+      "path": "follower/follower_step_1400.pt",
+      "bytes": 28616518,
+      "sha256": "e1fd30c551c81b6483e83d97000bbe8fa3336869f2bfa374a0417cc1485a5bd4",
+      "saved_at": "2026-09-23T22:31:30.803956+00:00",
+      "epoch": 1400,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 2769.1870577335358
+    },
+    {
+      "path": "follower/follower_step_1400_ema.pt",
+      "bytes": 28617270,
+      "sha256": "38169745e76047d761f529692626f1b3843136ef96cff8edcf05dad3a76adaab",
+      "saved_at": "2026-09-23T22:31:30.848956+00:00",
+      "epoch": 1400,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 2769.232058286667
+    },
+    {
+      "path": "follower/follower_step_1600.pt",
+      "bytes": 28616518,
+      "sha256": "ab0f235dbd1bb56bdcb6c1189c721fe46e66bdf64ed60b519f30a53be0ea4ff8",
+      "saved_at": "2026-09-23T22:38:08.165012+00:00",
+      "epoch": 1600,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 3166.5481140613556
+    },
+    {
+      "path": "follower/follower_step_1600_ema.pt",
+      "bytes": 28617270,
+      "sha256": "a6372a34159213fc535cf06749a600818bb57f6592db7151c9c5ce9e9538c54c",
+      "saved_at": "2026-09-23T22:38:08.211013+00:00",
+      "epoch": 1600,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 3166.594114780426
+    },
+    {
+      "path": "follower/follower_step_1800.pt",
+      "bytes": 28616518,
+      "sha256": "53ac4f9ab5b2a6c45b75d91ad7e9637314c902e8b607f820843b84ed8ee395bf",
+      "saved_at": "2026-09-23T22:44:35.751781+00:00",
+      "epoch": 1800,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 3554.134882926941
+    },
+    {
+      "path": "follower/follower_step_1800_ema.pt",
+      "bytes": 28617270,
+      "sha256": "27bbeb527856a7e680e00190be9c788a59217484602fe319a3f11670c34e4f19",
+      "saved_at": "2026-09-23T22:44:35.797781+00:00",
+      "epoch": 1800,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 3554.180883407593
+    },
+    {
+      "path": "follower/follower_step_200.pt",
+      "bytes": 28616346,
+      "sha256": "ed44ec6a405ead4ff8c1f84a1c4e167927dae79868a6241eace80ae17ee8cb6e",
+      "saved_at": "2026-09-23T21:51:58.929416+00:00",
+      "epoch": 200,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 397.3125183582306
+    },
+    {
+      "path": "follower/follower_step_2000.pt",
+      "bytes": 28616518,
+      "sha256": "46f022d73c52da0123ac479bad116ba510a841b1286b012ef0a0d926669dc14e",
+      "saved_at": "2026-09-23T22:51:12.311617+00:00",
+      "epoch": 2000,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 3950.694719552994
+    },
+    {
+      "path": "follower/follower_step_2000_ema.pt",
+      "bytes": 28617270,
+      "sha256": "52bc65b8277e8994935dea569051982b6eb00f1d1582d7061d2a626457d92cd7",
+      "saved_at": "2026-09-23T22:51:12.356618+00:00",
+      "epoch": 2000,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 3950.739720106125
+    },
+    {
+      "path": "follower/follower_step_200_ema.pt",
+      "bytes": 28617034,
+      "sha256": "60cca18ab07c04d87f3edc96eb4a6abb13f069608f369911c9948524e1f1f88e",
+      "saved_at": "2026-09-23T21:51:58.975416+00:00",
+      "epoch": 200,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 397.35851860046387
+    },
+    {
+      "path": "follower/follower_step_400.pt",
+      "bytes": 28616346,
+      "sha256": "cd5f3cf7012769744dc0f3fd91e577e4e78a877e935251cce65db39eb3cbfb61",
+      "saved_at": "2026-09-23T21:58:36.261102+00:00",
+      "epoch": 400,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 794.644204378128
+    },
+    {
+      "path": "follower/follower_step_400_ema.pt",
+      "bytes": 28617034,
+      "sha256": "b6c007aa762b8f07f4c83cc23312e431a7f8a4905ecceec3235c0cc3a44761cd",
+      "saved_at": "2026-09-23T21:58:36.306103+00:00",
+      "epoch": 400,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 794.6892049312592
+    },
+    {
+      "path": "follower/follower_step_600.pt",
+      "bytes": 28616346,
+      "sha256": "62cef2e96ab2c746b2c55da3b37186e6332f904d711dbda2a36586d8073a5089",
+      "saved_at": "2026-09-23T22:05:11.728368+00:00",
+      "epoch": 600,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 1190.1114699840546
+    },
+    {
+      "path": "follower/follower_step_600_ema.pt",
+      "bytes": 28617034,
+      "sha256": "4c5dcf043474fe2a995788fb7b5b08c9f4fdb5323c8f4815e80428fd65033bab",
+      "saved_at": "2026-09-23T22:05:11.774368+00:00",
+      "epoch": 600,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 1190.1574704647064
+    },
+    {
+      "path": "follower/follower_step_800.pt",
+      "bytes": 28616346,
+      "sha256": "1592c751e1b5f972d3ba66e058c092b9a5f98757a7b7a0e5e6e0f6e4468496ee",
+      "saved_at": "2026-09-23T22:11:48.414382+00:00",
+      "epoch": 800,
+      "arm": "follower",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 1586.7974836826324
+    },
+    {
+      "path": "follower/follower_step_800_ema.pt",
+      "bytes": 28617034,
+      "sha256": "5dc6098d0e8fe28d856c68852029687be515517990be4d24bcfb9bbcdde80864",
+      "saved_at": "2026-09-23T22:11:48.459382+00:00",
+      "epoch": 800,
+      "arm": "follower",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 1586.8424842357635
+    },
+    {
+      "path": "follower/latest.pt",
+      "bytes": 28617270,
+      "sha256": "52bc65b8277e8994935dea569051982b6eb00f1d1582d7061d2a626457d92cd7",
+      "saved_at": "2026-09-23T22:51:12.429619+00:00"
+    },
+    {
+      "path": "leader/final.pt",
+      "bytes": 26767778,
+      "sha256": "f18debee37bafca00d81777278d63b7780ffb00e421387d57696e7b42930670b",
+      "saved_at": "2026-09-23T21:45:19.945261+00:00"
+    },
+    {
+      "path": "leader/latest.pt",
+      "bytes": 26779676,
+      "sha256": "88aca463878ac33fc6d67aa02741a1ea30fd3340ce6934f32f5031795c1779fa",
+      "saved_at": "2026-09-23T21:45:19.968262+00:00"
+    },
+    {
+      "path": "leader/leader_step_1000.pt",
+      "bytes": 26779012,
+      "sha256": "d36fb4430fb3672b22e40218ab5d9647ce0c31bf2581890864438c8bd5fd7b8b",
+      "saved_at": "2026-09-23T21:12:45.210034+00:00",
+      "epoch": 1000,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 1975.0495734214783
+    },
+    {
+      "path": "leader/leader_step_1000_ema.pt",
+      "bytes": 26779676,
+      "sha256": "31b346e0faabaa8bf4a7d94f0786542e5d08b57772a6a8a7e85d9f161e877395",
+      "saved_at": "2026-09-23T21:12:45.253035+00:00",
+      "epoch": 1000,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 1975.0925741195679
+    },
+    {
+      "path": "leader/leader_step_1200.pt",
+      "bytes": 26779012,
+      "sha256": "498a32c9867ad8759ae378667990adecb5240646e42c0bbbde5c1ccd8266e12a",
+      "saved_at": "2026-09-23T21:19:15.689141+00:00",
+      "epoch": 1200,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 2365.528680086136
+    },
+    {
+      "path": "leader/leader_step_1200_ema.pt",
+      "bytes": 26779676,
+      "sha256": "967cca1899962e39044a0ff9f045f8dd37d86516f3949ab71011f72d9e6ba39e",
+      "saved_at": "2026-09-23T21:19:15.732141+00:00",
+      "epoch": 1200,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 2365.571680545807
+    },
+    {
+      "path": "leader/leader_step_1400.pt",
+      "bytes": 26779012,
+      "sha256": "a3b488f0395941055b7df8cc80a5d01e92efa6edb3d5053f3ee584979f2171d9",
+      "saved_at": "2026-09-23T21:25:48.207819+00:00",
+      "epoch": 1400,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 2758.0473577976227
+    },
+    {
+      "path": "leader/leader_step_1400_ema.pt",
+      "bytes": 26779676,
+      "sha256": "8df4d7c3836b4ad21741519a83c7f4b0c3e704fcae6f5ae0ebd62bc7e8f71a3e",
+      "saved_at": "2026-09-23T21:25:48.250819+00:00",
+      "epoch": 1400,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 2758.0903584957123
+    },
+    {
+      "path": "leader/leader_step_1600.pt",
+      "bytes": 26779012,
+      "sha256": "42da6a24cf131aa7b7c2288a4b4599b9a60d745a52036e4205e04ae6cba3ff3f",
+      "saved_at": "2026-09-23T21:32:21.311111+00:00",
+      "epoch": 1600,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 3151.15065073967
+    },
+    {
+      "path": "leader/leader_step_1600_ema.pt",
+      "bytes": 26779676,
+      "sha256": "dbc36424badb44f0959e9bdcdba5432be5e702a22fe8f7fc9ef880eb6411704b",
+      "saved_at": "2026-09-23T21:32:21.354112+00:00",
+      "epoch": 1600,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 3151.1936514377594
+    },
+    {
+      "path": "leader/leader_step_1800.pt",
+      "bytes": 26779012,
+      "sha256": "a85792edff7431c3d6b6cbf3b444f15b397dd099cbdc5e483c0bc0c41281f4bc",
+      "saved_at": "2026-09-23T21:38:48.268582+00:00",
+      "epoch": 1800,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 3538.108121395111
+    },
+    {
+      "path": "leader/leader_step_1800_ema.pt",
+      "bytes": 26779676,
+      "sha256": "438e81175cac6e4c62499a0c2b22801547f0826eb0fb49b652dc9304e62c613a",
+      "saved_at": "2026-09-23T21:38:48.311583+00:00",
+      "epoch": 1800,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 3538.1511220932007
+    },
+    {
+      "path": "leader/leader_step_200.pt",
+      "bytes": 26778846,
+      "sha256": "daa71d652d61b3f59e9336206349078d57d7e87c83491ceb1298775e0bb7e900",
+      "saved_at": "2026-09-23T20:46:55.954778+00:00",
+      "epoch": 200,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 425.79431772232056
+    },
+    {
+      "path": "leader/leader_step_2000.pt",
+      "bytes": 26779012,
+      "sha256": "418d638f596ba9037c90bf52452022cdc58c9e7ac0eaf6b2d4d4676c1d2a78f9",
+      "saved_at": "2026-09-23T21:45:19.857260+00:00",
+      "epoch": 2000,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 3929.6967990398407
+    },
+    {
+      "path": "leader/leader_step_2000_ema.pt",
+      "bytes": 26779676,
+      "sha256": "88aca463878ac33fc6d67aa02741a1ea30fd3340ce6934f32f5031795c1779fa",
+      "saved_at": "2026-09-23T21:45:19.899261+00:00",
+      "epoch": 2000,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 3929.7387998104095
+    },
+    {
+      "path": "leader/leader_step_200_ema.pt",
+      "bytes": 26779510,
+      "sha256": "f0854e99652d9ad9dd91c1230629e6e36445fd6380f8c73d05c035d67083e847",
+      "saved_at": "2026-09-23T20:46:55.997780+00:00",
+      "epoch": 200,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 425.8373188972473
+    },
+    {
+      "path": "leader/leader_step_400.pt",
+      "bytes": 26778846,
+      "sha256": "4568625bda4e45243703bd4644e510cb78752a53d4d0683948c2ffaa0adf4833",
+      "saved_at": "2026-09-23T20:53:11.948253+00:00",
+      "epoch": 400,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 801.787791967392
+    },
+    {
+      "path": "leader/leader_step_400_ema.pt",
+      "bytes": 26779510,
+      "sha256": "21ba789a9e06f5dd6eebdc3f723075752d32f9571aa1caacb908813381f4ab25",
+      "saved_at": "2026-09-23T20:53:11.991254+00:00",
+      "epoch": 400,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 801.8307929039001
+    },
+    {
+      "path": "leader/leader_step_600.pt",
+      "bytes": 26778846,
+      "sha256": "dd989ac451855a96a0acef03883420de491a69a4af2bb3f7e629377769a49b87",
+      "saved_at": "2026-09-23T20:59:32.981994+00:00",
+      "epoch": 600,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 1182.8215336799622
+    },
+    {
+      "path": "leader/leader_step_600_ema.pt",
+      "bytes": 26779510,
+      "sha256": "aa8335d9666d0468598a0ee0db69dbca70c67e163ef17720f40f5ca80e441987",
+      "saved_at": "2026-09-23T20:59:33.023995+00:00",
+      "epoch": 600,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 1182.8635346889496
+    },
+    {
+      "path": "leader/leader_step_800.pt",
+      "bytes": 26778846,
+      "sha256": "2f3db0195ec7b4a429c2722f7bb75aa83c4af05e6178a14e286469ef8429819a",
+      "saved_at": "2026-09-23T21:06:08.949613+00:00",
+      "epoch": 800,
+      "arm": "leader",
+      "kind": "raw",
+      "training_seconds_to_checkpoint": 1578.7891523838043
+    },
+    {
+      "path": "leader/leader_step_800_ema.pt",
+      "bytes": 26779510,
+      "sha256": "3b52195fb19673576d47f47e325102a1ca92382453b6bd88ced74c8006019bbf",
+      "saved_at": "2026-09-23T21:06:08.992614+00:00",
+      "epoch": 800,
+      "arm": "leader",
+      "kind": "EMA",
+      "training_seconds_to_checkpoint": 1578.832153081894
+    }
+  ],
+  "current_cell": 6,
+  "updated_at": "2026-09-23T21:45:21.616870+00:00",
+  "end_time": "2026-09-23T22:51:17.886495+00:00",
+  "demonstrations": 5,
+  "training_seconds": 7883.898231214014,
+  "total_execution_seconds": 7892.6284558250045,
+  "evaluation": {
+    "performed": false
+  }
+}
