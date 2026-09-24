@@ -1,0 +1,105 @@
+{
+  "id": "put_bottle_in_fridge_tapas_100demos_seed1",
+  "task": "bimanual_put_bottle_in_fridge",
+  "model": "tapas",
+  "demos": 100,
+  "seed": 1,
+  "leader_arm": "left",
+  "epochs": null,
+  "worker_kind": "cpu",
+  "priority": [
+    100,
+    1,
+    1
+  ],
+  "estimated_seconds": 131380,
+  "status": "completed",
+  "output": "training_runs/put_bottle_in_fridge/tapas/100demos/seed1",
+  "notebook": "own_code/notebooks/train_TAPAS_bimanual.ipynb",
+  "base_commit": "a49fb1b89c2075a6fb56d7b275250c4140d70188",
+  "source_hashes": {
+    "own_code/notebooks/train_Diffusion_joint.ipynb": "6ddaea771e7097214c4010716b6a50e44def4212348ef23872ed56be479c562c",
+    "own_code/notebooks/train_Diffusion_leader_follower.ipynb": "0ad2ae4c5ca5b98c7ca4d18413bfcdfd692674b8976513ad617ddcc464cf94f4",
+    "own_code/notebooks/train_TAPAS_bimanual.ipynb": "98477439601aa6e366fb2fc0ba9b064405c4dc972d5a12b4979b590d3618c8d3",
+    "TAPAS/tapas_gmm/env/rlbench.py": "0fbf1dc5a804a979887acdd595423d246eb1bb2441d89b1002fce539ae5a23a8",
+    "TAPAS/tapas_gmm/encoder/encoder.py": "fee7e406092203d9ec1c0429ffafeea9b7595a2310426d97753637b5de351ea3",
+    "TAPAS/tapas_gmm/dataset/scene.py": "99526fe9fbd1a56a5709c1db53a7e2c951564a1a04222acf9d9e9b961b1acccf",
+    "TAPAS/tapas_gmm/dataset/bc.py": "af7b99a5e98321305bf6cac2625b41990badae173c4eded0e6b336f02547c67a",
+    "TAPAS/tapas_gmm/policy/diffusion.py": "0937c4cc751fbb19a8b7c730fdad7169615b01b7531e173f372597712c9cdb0d",
+    "TAPAS/tapas_gmm/utils/select_gpu.py": "93794474eef2d11b68e5213ed92a4576c2d4fa1b4fc0304b621c96845ee57e72",
+    "riepybdlib/riepybdlib/statistics.py": "3a6348e8e8aed5d631876a7540080e0a73395fe2816295c881df0f916d48fb31",
+    "TAPAS/tapas_gmm/utils/ema.py": "1158b56a4f8e67c7e1b4feb482c4441ccd5d814b618f57fa6812988e53b9a183"
+  },
+  "configuration": {
+    "n_components": 10,
+    "fix_frames": false,
+    "frame_selection_fixed": true
+  },
+  "dependencies": {
+    "riepybdlib_commit": "a56cbdb",
+    "riepybdlib_statistics_sha256": "3a6348e8e8aed5d631876a7540080e0a73395fe2816295c881df0f916d48fb31"
+  },
+  "original_estimated_seconds": 9500,
+  "worker": "cpu1",
+  "pid": 192119,
+  "start_time": "2026-09-24T00:28:48.414913+00:00",
+  "hardware": {
+    "host": "hpcgpu6",
+    "gpu": null,
+    "physical_gpu_index": null,
+    "gpu_memory_mib": null,
+    "cpu_threads": 4
+  },
+  "software": {
+    "torch": "2.1.0+cu118",
+    "numpy": "1.26.4",
+    "nbclient": "0.11.0"
+  },
+  "execution_method": "Jupyter NotebookClient",
+  "runtime_instrumentation": "Metadata and cell timing; unchanged training cells; final TAPAS visualization omitted",
+  "cell_seconds": {
+    "0": 3.867902856989531,
+    "1": 0.007775849022436887,
+    "2": 0.009207986993715167,
+    "3": 0.005472825025208294,
+    "4": 0.004861093999352306,
+    "5": 53.84396707898122,
+    "6": 2.081161656009499,
+    "7": 0.0060320349875837564,
+    "8": 0.0046010979858692735,
+    "9": 26520.417752334994,
+    "10": 6.559366753004724
+  },
+  "training_cells": {
+    "tapas": {
+      "cell": 9,
+      "start_time": "2026-09-24T00:29:48.936750+00:00",
+      "start_epoch_seconds": 1790209788.9367528,
+      "end_time": "2026-09-24T07:51:49.354499+00:00",
+      "seconds": 26520.417752334994
+    }
+  },
+  "checkpoints": [
+    {
+      "path": "latest.pkl",
+      "bytes": 1798253561,
+      "sha256": "579423c867ce80a415c7d934636a15602768a7cd96cbba5fd78fc861c8658df4",
+      "saved_at": "2026-09-24T07:51:55.885288+00:00"
+    }
+  ],
+  "current_cell": 10,
+  "updated_at": "2026-09-24T07:51:49.372271+00:00",
+  "end_time": "2026-09-24T07:52:01.720156+00:00",
+  "demonstrations": 100,
+  "training_seconds": 26520.417752334994,
+  "total_execution_seconds": 26593.30083019301,
+  "evaluation": {
+    "performed": false
+  },
+  "checkpoint": {
+    "path": "latest.pkl",
+    "bytes": 1798253561,
+    "sha256": "579423c867ce80a415c7d934636a15602768a7cd96cbba5fd78fc861c8658df4",
+    "saved_at": "2026-09-24T07:51:55.885288+00:00"
+  }
+}

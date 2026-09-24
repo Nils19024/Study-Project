@@ -10,3 +10,5 @@ training_runs/2026-08-10_diffusion_leader_follower/follower/latest.pt filter=lfs
 training_runs/hand_over/tapas/25demos/seed*/latest.pkl filter=lfs diff=lfs merge=lfs -text
 training_runs/hand_over/tapas/100demos/seed*/latest.pkl filter=lfs diff=lfs merge=lfs -text
 training_runs/push_button/tapas/100demos/seed*/latest.pkl filter=lfs diff=lfs merge=lfs -text
+training_runs/put_bottle_in_fridge/tapas/**/*.pkl filter=lfs diff=lfs merge=lfs -text
+training_runs/take_tray_out_of_oven/tapas/**/*.pkl filter=lfs diff=lfs merge=lfs -text

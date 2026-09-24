@@ -1,0 +1,119 @@
+{
+  "id": "take_tray_out_of_oven_tapas_5demos_seed1",
+  "task": "bimanual_take_tray_out_of_oven",
+  "model": "tapas",
+  "demos": 5,
+  "seed": 1,
+  "leader_arm": "left",
+  "epochs": null,
+  "worker_kind": "cpu",
+  "priority": [
+    5,
+    1,
+    1
+  ],
+  "estimated_seconds": 475,
+  "status": "completed",
+  "output": "training_runs/take_tray_out_of_oven/tapas/5demos/seed1",
+  "notebook": "own_code/notebooks/train_TAPAS_bimanual.ipynb",
+  "base_commit": "a49fb1b89c2075a6fb56d7b275250c4140d70188",
+  "source_hashes": {
+    "own_code/notebooks/train_Diffusion_joint.ipynb": "6a2561290efbcddd4dbac231cbd0ec6798f986da98cd7a6fc21be5bcb6ca910a",
+    "own_code/notebooks/train_Diffusion_leader_follower.ipynb": "0ad2ae4c5ca5b98c7ca4d18413bfcdfd692674b8976513ad617ddcc464cf94f4",
+    "own_code/notebooks/train_TAPAS_bimanual.ipynb": "98477439601aa6e366fb2fc0ba9b064405c4dc972d5a12b4979b590d3618c8d3",
+    "TAPAS/tapas_gmm/env/rlbench.py": "0fbf1dc5a804a979887acdd595423d246eb1bb2441d89b1002fce539ae5a23a8",
+    "TAPAS/tapas_gmm/encoder/encoder.py": "fee7e406092203d9ec1c0429ffafeea9b7595a2310426d97753637b5de351ea3",
+    "TAPAS/tapas_gmm/dataset/scene.py": "99526fe9fbd1a56a5709c1db53a7e2c951564a1a04222acf9d9e9b961b1acccf",
+    "TAPAS/tapas_gmm/dataset/bc.py": "af7b99a5e98321305bf6cac2625b41990badae173c4eded0e6b336f02547c67a",
+    "TAPAS/tapas_gmm/policy/diffusion.py": "7acc961ff2e6201f14d3044cf7cbce4417c97ed621394fcefc368d8986a8cb00",
+    "TAPAS/tapas_gmm/utils/select_gpu.py": "93794474eef2d11b68e5213ed92a4576c2d4fa1b4fc0304b621c96845ee57e72",
+    "riepybdlib/riepybdlib/statistics.py": "3a6348e8e8aed5d631876a7540080e0a73395fe2816295c881df0f916d48fb31"
+  },
+  "configuration": {
+    "n_components": 10,
+    "fix_frames": false,
+    "frame_selection_fixed": true
+  },
+  "attempts": [
+    {
+      "status": "failed",
+      "reason": "Missing riepybdlib on new server",
+      "start_time": "2026-09-23T20:15:21.200979+00:00",
+      "end_time": "2026-09-23T20:15:27.480372+00:00"
+    },
+    {
+      "status": "failed",
+      "reason": "Gaussian normalization overflow before model saved",
+      "start_time": "2026-09-23T20:19:16.643654+00:00",
+      "end_time": "2026-09-23T20:30:23.098866+00:00",
+      "archive": "own_code/artifacts/training/new_tasks_20260923/failed_attempts/take_tray_out_of_oven_tapas_5demos_seed1/numerical_overflow"
+    }
+  ],
+  "retry_reason": "Equivalent log-domain Gaussian normalization; numerical tests passed",
+  "dependencies": {
+    "riepybdlib_commit": "a56cbdb",
+    "riepybdlib_statistics_sha256": "3a6348e8e8aed5d631876a7540080e0a73395fe2816295c881df0f916d48fb31"
+  },
+  "worker": "cpu2",
+  "pid": 179616,
+  "start_time": "2026-09-23T20:39:45.273982+00:00",
+  "hardware": {
+    "host": "hpcgpu6",
+    "gpu": null,
+    "physical_gpu_index": null,
+    "gpu_memory_mib": null,
+    "cpu_threads": 4
+  },
+  "software": {
+    "torch": "2.1.0+cu118",
+    "numpy": "1.26.4",
+    "nbclient": "0.11.0"
+  },
+  "execution_method": "Jupyter NotebookClient",
+  "runtime_instrumentation": "Metadata and cell timing; unchanged training cells; final TAPAS visualization omitted",
+  "cell_seconds": {
+    "0": 3.963182922001579,
+    "1": 0.0096647739992477,
+    "2": 0.009179664994007908,
+    "3": 0.00739980599610135,
+    "4": 0.007374364999122918,
+    "5": 3.40892805600015,
+    "6": 0.16198104700015392,
+    "7": 0.007554687996162102,
+    "8": 0.006200294999871403,
+    "9": 982.5228022079973,
+    "10": 0.7550871159910457
+  },
+  "training_cells": {
+    "tapas": {
+      "cell": 9,
+      "start_time": "2026-09-23T20:39:53.729625+00:00",
+      "start_epoch_seconds": 1790195993.7296302,
+      "end_time": "2026-09-23T20:56:16.252409+00:00",
+      "seconds": 982.5228022079973
+    }
+  },
+  "checkpoints": [
+    {
+      "path": "latest.pkl",
+      "bytes": 160653052,
+      "sha256": "47951604037abed0f3a72facf418200500378f096d5e11ed7e1e6d0676d65c4d",
+      "saved_at": "2026-09-23T20:56:17.018084+00:00"
+    }
+  ],
+  "current_cell": 10,
+  "updated_at": "2026-09-23T20:56:16.275445+00:00",
+  "end_time": "2026-09-23T20:56:20.116072+00:00",
+  "demonstrations": 5,
+  "training_seconds": 982.5228022079973,
+  "total_execution_seconds": 994.8383076439932,
+  "evaluation": {
+    "performed": false
+  },
+  "checkpoint": {
+    "path": "latest.pkl",
+    "bytes": 160653052,
+    "sha256": "47951604037abed0f3a72facf418200500378f096d5e11ed7e1e6d0676d65c4d",
+    "saved_at": "2026-09-23T20:56:17.018084+00:00"
+  }
+}
