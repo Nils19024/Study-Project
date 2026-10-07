@@ -1049,7 +1049,7 @@ class SceneDataset(Dataset):
         pose_dict = self.get_attribute_distribution("object_poses")
 
         if stacked:
-            return torch.cat([v for _, v in pose_dict.items()], dim=-1)
+            return torch.cat([v for _, v in sorted(pose_dict.items())], dim=-1)
         else:
             return pose_dict
 

@@ -1,4 +1,3 @@
-import hashlib
 import itertools
 from functools import lru_cache
 from typing import Any, Sequence
@@ -465,6 +464,18 @@ class Demos:
                 add_init_ee_pose_as_frame,
                 add_world_frame,
             )
+
+        if make_quats_continuous:
+            frame_sets = (
+                (self.frame_quats_left, self.frame_quats_right)
+                if self.is_bimanual else (self.frame_quats,)
+            )
+            for frames in frame_sets:
+                for trajectory in frames:
+                    for quats, reference in zip(trajectory, frames[0]):
+                        ensure_quaternion_continuity(quats)
+                        if (quats[0] * reference[0]).sum() < 0:
+                            quats *= -1
 
         # Convert the reference frames and EE pose into homogeneous transforms.
         def build_frame_transforms(frame_poses_input):
@@ -1526,6 +1537,18 @@ class Demos:
     def get_gripper_state(
         self, subsampled: bool = False
     ) -> torch.Tensor | tuple[torch.Tensor]:
+        if self.is_bimanual:
+            if subsampled:
+                left, right = self.stacked_gripper_states_left, self.stacked_gripper_states_right
+                if left.ndim == 3:
+                    left = left.mean(dim=2, keepdim=True)
+                    right = right.mean(dim=2, keepdim=True)
+                return torch.cat((left, right), dim=-1)
+            return tuple(
+                torch.stack((left.reshape(len(left), -1).mean(dim=1),
+                             right.reshape(len(right), -1).mean(dim=1)), dim=-1)
+                for left, right in zip(self.gripper_states_left, self.gripper_states_right)
+            )
         if subsampled:
             data = self.stacked_gripper_states
 
@@ -2300,14 +2323,10 @@ class Demos:
         return self.meta_data
 
     def __hash__(self):
-        hash = hashlib.sha1(repr(sorted(self.__key().items())).encode("utf-8"))
-
-        return int(hash.hexdigest(), 16)
+        return id(self)
 
     def __eq__(self, other):
-        if isinstance(other, Demos):
-            return self.__key() == other.__key()
-        return NotImplemented
+        return self is other
 
     def segment(
         self,
@@ -2782,8 +2801,44 @@ class Demos:
         closed_threshold: float = 0.03,
     ) -> tuple[tuple[int, ...], ...]:
         """
-        Segment the demos based on the gripper action.
+        Segment the demos based on recorded open/closed gripper state.
+        Short, bounded state excursions are ignored only when choosing cuts;
+        original states, actions, poses and every demonstration stay unchanged.
         """
+        if self.is_bimanual:
+            events = []
+            ignored = []
+            for traj in trajs:
+                if traj.ndim != 2 or traj.shape[1] != 2:
+                    raise ValueError("Bimanual gripper state must have shape (time, 2)")
+                states = (traj < closed_threshold).clone()
+                suppressed = []
+                # Honor min_len for BOTH arms. A one-frame close/open glitch
+                # must not renumber every later event in the whole dataset.
+                for arm in range(2):
+                    cuts = (states[1:, arm] != states[:-1, arm]).nonzero().flatten() + 1
+                    boundaries = [0] + cuts.tolist() + [len(states)]
+                    for start, stop in zip(boundaries[1:-1], boundaries[2:]):
+                        if (stop < len(states) and stop - start <= min_len
+                                and states[start - 1, arm] == states[stop, arm]):
+                            states[start:stop, arm] = states[start - 1, arm]
+                            suppressed.append((arm, int(start), int(stop)))
+                changes = states[1:] != states[:-1]
+                counts = changes.int().cumsum(dim=0)
+                cuts = changes.any(dim=1).nonzero().flatten()
+                events.append({tuple(counts[i].tolist()): int(i) + 1 for i in cuts})
+                ignored.append(suppressed)
+            # Match the same left/right events, even if two near-simultaneous
+            # gripper changes occur in a different order in one demonstration.
+            common = sorted(set.intersection(*(set(e) for e in events)), key=sum)
+            self.gripper_segmentation_audit = dict(
+                implementation="recorded_gripper_state_min_length_v1",
+                min_len=min_len, closed_threshold=closed_threshold,
+                ignored_short_excursions=ignored,
+                event_counts=[len(e) for e in events],
+                common_event_states=[list(state) for state in common],
+                demonstrations_preserved=len(trajs), original_values_unchanged=True)
+            return tuple(tuple(e[state] for state in common) for e in events)
         traj_lens = tuple(t.shape[0] for t in trajs)
 
         # find indeces when gripper is closed, ie state is smaller than threshold

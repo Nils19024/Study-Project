@@ -441,7 +441,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
             else:
                 logging.warning("right path is none")
         except (ConfigurationPathError, InvalidActionError):
-            pass
+            raise
         
         try:
             left_path = self.get_path(scene, left_action, left_ignore_collison, scene.robot.left_arm, scene.robot.left_gripper)
@@ -450,7 +450,7 @@ class BimanualEndEffectorPoseViaPlanning(EndEffectorPoseViaPlanning):
             else:
                 logging.warning("left path is none")
         except (ConfigurationPathError, InvalidActionError):
-            pass
+            raise
         
 
         done = False
