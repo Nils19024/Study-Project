@@ -191,6 +191,7 @@ class TPGMMConfig:
     action_as_orientation: bool = False
     action_with_magnitude: bool = False
     add_gripper_action: bool = False
+    antipodal_rotations: bool = False  # Keep old checkpoints on their fitted geometry.
 
     heal_time_variance: bool = False
 
@@ -562,7 +563,11 @@ class TPGMM:
         if self.config.position_only:
             m_state = Manifold_R3
         else:
-            m_state = Manifold_R3 * Manifold_Quat
+            rotation = (
+                rbd.manifold.get_quaternion_manifold_star(name="SO(3)")
+                if self.config.antipodal_rotations else Manifold_Quat
+            )
+            m_state = Manifold_R3 * rotation
         
         m_action = (
             Manifold_S2
@@ -2599,7 +2604,7 @@ class TPGMM:
             for j in range(len(local_marginals))
         )
 
-        joint_model = multiply_iterable(trans_marginals)
+        joint_model = multiply_aligned_models(trans_marginals)
         if join_cov_mask is not None:
             joint_model.mask_covariance(mask=join_cov_mask)
 
@@ -3040,7 +3045,9 @@ class AutoTPGMM(TPGMM):
         if self.config.frame_selection.use_precision:
             # fing candiddates with identical precision across all components
             # are likely redundant, so drop all but the first one of each group
-            doublicate_rows = get_indeces_of_duplicate_rows(candidate_ic)
+            doublicate_rows = get_indeces_of_duplicate_rows(
+                candidate_ic.reshape(len(candidate_ic), -1)
+            )
             drop_candidates = (
                 None
                 if not self.config.frame_selection.drop_redundant_frames
@@ -3050,6 +3057,8 @@ class AutoTPGMM(TPGMM):
                     else None
                 )
             )
+            if drop_candidates is not None:
+                candidate_ic[drop_candidates] = 0
             # relative precision across frames
             if demos.is_bimanual:
                 candidate_ic = candidate_ic / candidate_ic.sum(axis=0)
@@ -3081,7 +3090,7 @@ class AutoTPGMM(TPGMM):
 
         if drop_candidates is not None:
             logger.info(f"Dropping redundant frames {drop_candidates}.")
-            super_threshold[drop_candidates] = False
+            super_threshold[..., drop_candidates] = False
         
         if demos.is_bimanual:
             selected_idcs = tuple(
@@ -3766,6 +3775,8 @@ class AutoTPGMM(TPGMM):
                 local_marginals=local_marginals,
                 heal_time_variance=heal_time_variance,
                 time_based=time_based,
+                active_segment=(self._online_active_segment if per_segment
+                                and not self._fix_frames and self._demos.is_bimanual else None),
             )
 
             if not per_segment:
@@ -3847,11 +3858,16 @@ class AutoTPGMM(TPGMM):
         local_marginals: tuple[tuple[GMM]] | None = None,
         time_based: bool = True,
         heal_time_variance: bool = True,
+        active_segment: int | None = None,
     ) -> tuple[tuple[GMM, ...], tuple[rbd.statistics.ModelList, ...]]:
         joint_models = []
         trans_marginals = []
 
         for i, margs in enumerate(local_marginals):
+            if active_segment is not None and i != active_segment:
+                joint_models.append(None)
+                trans_marginals.append(None)
+                continue
             if self._demos.is_bimanual:
                 frame_data = self.segment_frame_views[i]
 
@@ -4625,6 +4641,19 @@ def transform_marginals(
     return tuple(transformed_marginals)
 
 
+def multiply_aligned_models(models: Sequence[GMM]) -> GMM:
+    # q and -q describe the same rotation; use the same sign before averaging.
+    for model in models[1:]:
+        for gaussian, reference in zip(model.gaussians, models[0].gaussians):
+            values = list(gaussian.mu)
+            for i, (value, anchor) in enumerate(zip(values, reference.mu)):
+                if isinstance(value, rbd_ar.Quaternion):
+                    if np.dot(value.to_nparray(), anchor.to_nparray()) < 0:
+                        values[i] = -value
+            gaussian.mu = tuple(values)
+    return multiply_iterable(models)
+
+
 def frame_transform_model(
     model: GMM,
     trans: np.ndarray,
@@ -4690,7 +4719,7 @@ def join_marginals(
     for i in tqdm(range(len(marginals)), desc="Joining marginals"):
         if fix_frames:
             # print([m.mu for m in marginals[i]])
-            joint = multiply_iterable(marginals[i])
+            joint = multiply_aligned_models(marginals[i])
             # print(joint.mu)
             if heal_time_variance and len(marginals[i]) > 1:
                 joint = heal_time_based_model(joint, marginals[i][0])
@@ -4698,7 +4727,7 @@ def join_marginals(
                 joint.mask_covariance(mask=cov_mask)
         else:
             joint = tuple(
-                multiply_iterable(t)
+                multiply_aligned_models(t)
                 for t in tqdm(marginals[i], desc=f"Trajectory {i}", leave=False)
             )
             if heal_time_variance and len(marginals[i]) > 1:

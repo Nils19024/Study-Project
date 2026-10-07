@@ -76,7 +76,7 @@ class ObservationEncoder(nn.Module):
         ee_pose = obs.ee_pose if self.config.ee_pose else empty_tensor
         proprio_obs = obs.proprio_obs if self.config.proprio_obs else empty_tensor
         object_poses = (
-            torch.cat([p for _, p in obs.object_poses.items()], dim=-1)
+            torch.cat([p for _, p in sorted(obs.object_poses.items())], dim=-1)
             if self.config.object_poses
             else empty_tensor
         )

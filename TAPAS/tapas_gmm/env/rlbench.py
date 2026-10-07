@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import torch
 from loguru import logger
-from pyrep.const import RenderMode
+from pyrep.const import RenderMode, ObjectType
 from pyrep.errors import ConfigurationPathError, IKError
 from rlbench.action_modes.action_mode import ActionMode, MoveArmThenGripper, BimanualMoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import (
@@ -52,6 +52,8 @@ from rlbench.bimanual_tasks.bimanual_dual_push_buttons import (
     BimanualDualPushButtons
 )
 from rlbench.bimanual_tasks.bimanual_handover_item import BimanualHandoverItem
+from rlbench.bimanual_tasks.bimanual_put_bottle_in_fridge import BimanualPutBottleInFridge
+from rlbench.bimanual_tasks.bimanual_take_tray_out_of_oven import BimanualTakeTrayOutOfOven
 
 from tapas_gmm.env import Environment
 from tapas_gmm.env.environment import BaseEnvironment, BaseEnvironmentConfig
@@ -108,6 +110,8 @@ task_switch = {
 
     "BimanualDualPushButtons": BimanualDualPushButtons,
     "BimanualHandoverItem": BimanualHandoverItem,
+    "BimanualPutBottleInFridge": BimanualPutBottleInFridge,
+    "BimanualTakeTrayOutOfOven": BimanualTakeTrayOutOfOven,
 }
 
 
@@ -648,9 +652,15 @@ class RLBenchEnvironment(BaseEnvironment):
         n_objs = int(len(flat_object_poses) // 7)  # poses are 7 dim and stacked
 
         if len(flat_object_poses) % 7 != 0:
-            logger.info("Can't parse low dim state, using fallback method.")
-            flat_object_poses = self._get_obj_poses()
-            n_objs = int(len(flat_object_poses) // 7)
+            pose_indices = []
+            offset = 0
+            for _, objtype in self.task_env._task._initial_objs_in_scene:
+                pose_indices.extend(range(offset, offset + 7))
+                offset += 7 + (1 if objtype == ObjectType.JOINT else
+                               6 if objtype == ObjectType.FORCE_SENSOR else 0)
+            assert offset == len(flat_object_poses), "Unknown task state layout"
+            flat_object_poses = flat_object_poses[pose_indices]
+            n_objs = len(pose_indices) // 7
 
         object_poses = tuple(
             np.concatenate((pose[:3], quat_real_last_to_real_first(pose[3:])))
