@@ -1,0 +1,20 @@
+{
+  "pid": 3510990,
+  "state": "completed",
+  "requested": 100,
+  "task": "push_button",
+  "diagnostic_only": false,
+  "dataset_role": "new_expert_collection_not_existing_benchmark_input",
+  "original_full_scene_dataset_recovery": false,
+  "original_embedded_100_preserved": true,
+  "directory": "/data2/ws1/schmidtn-study-evaluation/datasets/tapas_100_scene_20261006/bimanual_dual_push_buttons",
+  "started": 1791241756.3956378,
+  "seed": 20261006,
+  "updated": 1791242032.5767016,
+  "slot": "/data2/ws1/schmidtn-study-evaluation/distribution/evaluation_safety_20261005/cpu_slots/slot_2.lock",
+  "save_notebook_sha256": "a267a2e3b823f2da8c8ce95b9df8a91a106b36feaac6fb7f2ce23a00084e002e",
+  "cell": 6,
+  "completed": 100,
+  "seconds": 276.1836886405945,
+  "generation_method": "existing save_TAPAS_bimanual.ipynb; native live RLBench expert demonstrations; genuine task success required"
+}
