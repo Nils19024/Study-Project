@@ -1,0 +1,8 @@
+{
+  "parameters": {"demos":100,"epoch":2000,"seed":1},
+  "records": [
+    {"k":1,"episode":0,"force_applied_between_steps":[452,453],"first_prediction_step":457,"simulation_timestep_seconds":0.05000000074505806},
+    {"k":4,"episode":0,"force_applied_between_steps":[452,453],"first_prediction_step":472,"simulation_timestep_seconds":0.05000000074505806},
+    {"k":8,"episode":0,"force_applied_between_steps":[452,453],"first_prediction_step":492,"simulation_timestep_seconds":0.05000000074505806}
+  ]
+}

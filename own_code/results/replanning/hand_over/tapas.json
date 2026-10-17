@@ -1,0 +1,6 @@
+{
+  "parameters": {"demos":100,"epoch":0,"k":0,"seed":1},
+  "records": [
+    {"episode":0,"force_applied_between_steps":[452,453],"first_prediction_step":453,"simulation_timestep_seconds":0.05000000074505806}
+  ]
+}
