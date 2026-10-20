@@ -1,50 +1,16 @@
-## Cluster setup
+# Bimanual Imitation Learning: TAPAS and Diffusion Policies
 
-```bash
-git clone https://github.com/Nils19024/Study-Project.git
-cd Study-Project
-bash setup_cluster.sh
-```
+This is my study project on learning two-arm robot manipulation from demonstrations. I extended TAPAS for bimanual tasks and compared it with joint and leader-follower diffusion policies.
 
-## Manual setup
+The experiments use four tasks in RLBench: pushing buttons, handing over an object, putting a bottle in a fridge and taking a tray out of an oven. I compare success rates, training time and robustness, and also look at segmentation and replanning.
 
-### CoppeliaSim
+## Main folders
 
-```bash
-mkdir -p sim
-wget -P sim https://downloads.coppeliarobotics.com/V4_1_0/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz
-tar -xf sim/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz -C sim
-rm sim/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz
+- `own_code/demos/` – demonstrations for the four tasks.
+- `own_code/training/` – notebooks for training the models.
+- `own_code/evaluation/` – notebooks for running the evaluations.
+- `own_code/results/` – saved evaluation results.
+- `TAPAS/` – TAPAS code with the bimanual extensions and diffusion policies.
+- `rlbench/` – simulation environment and task code.
 
-export COPPELIASIM_ROOT="$PWD/sim/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04"
-export LD_LIBRARY_PATH="$COPPELIASIM_ROOT:${LD_LIBRARY_PATH:-}"
-export QT_QPA_PLATFORM_PLUGIN_PATH="$COPPELIASIM_ROOT"
-```
-
-### TAPAS and Diffusion
-
-```bash
-conda create -n tapas_diffusion python=3.10 -y
-conda activate tapas_diffusion
-git clone https://github.com/vonHartz/riepybdlib.git
-git -C riepybdlib checkout a56cbdb
-pip install -r TAPAS/requirements.txt
-pip uninstall -y torch
-pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-pip install --no-deps --no-build-isolation git+https://github.com/markusgrotz/PyRep.git
-pip install -e riepybdlib -e rlbench -e "TAPAS[diffusion]"
-pip install ipykernel
-python -m ipykernel install --user --name tapas_diffusion --display-name "Python (tapas_diffusion)"
-```
-
-### PerAct2
-
-```bash
-conda create -n peract2 --clone tapas_diffusion
-conda activate peract2
-pip install --no-deps git+https://github.com/markusgrotz/YARR.git
-pip install moviepy pyrender==0.1.45 timeout-decorator
-pip install -e rlbench -e peract_bimanual
-PYTORCH3D_NO_EXTENSION=1 pip install --no-build-isolation "git+https://github.com/facebookresearch/pytorch3d.git@v0.7.5"
-python -m ipykernel install --user --name peract2 --display-name "Python (peract2)"
-```
+The trained models are available in the [Evaluation models release](https://github.com/Nils19024/Study-Project/releases/tag/evaluation-models).
