@@ -14,3 +14,8 @@ The experiments use four tasks in RLBench: pushing buttons, handing over an obje
 - `rlbench/` – simulation environment and task code.
 
 The trained models are available in the [Evaluation models release](https://github.com/Nils19024/Study-Project/releases/tag/evaluation-models).
+
+## Based on
+
+- `TAPAS/` is based on [TAPAS](https://github.com/robot-learning-freiburg/TAPAS), which I extended for bimanual manipulation.
+- `rlbench/` is based on [Markus Grotz's RLBench fork](https://github.com/markusgrotz/RLBench), which adds bimanual support to [RLBench](https://github.com/stepjam/RLBench). I made further changes for my experiments.
